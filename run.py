@@ -19,10 +19,11 @@ def main() -> None:
     print(f"Script saved to {script_path}")
 
     script_text = script_path.read_text(encoding="utf-8")
-    audio_path = generate_voiceover(
+    audio_paths = generate_voiceover(
         script=script_text, video_title="How Inflation Works", video_id=video_id
     )
-    print(f"Voiceover saved to {audio_path}")
+    for path in audio_paths:
+        print(f"Voiceover saved to {path}")
 
 
 if __name__ == "__main__":
