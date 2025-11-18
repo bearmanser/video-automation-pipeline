@@ -13,7 +13,7 @@ load_dotenv()
 
 def main() -> None:
     script_path: Path = generate_and_save_script(
-        "How Inflation Works", topic="Inflation basics", word_length=220
+        "How Inflation Works", topic="Inflation basics", word_length=500
     )
     print(f"Script saved to {script_path}")
 
