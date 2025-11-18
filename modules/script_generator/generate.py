@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import re
+import uuid
 from pathlib import Path
 from typing import Iterable, Optional
 
@@ -26,7 +27,9 @@ def _collect_response_chunks(chunks: Iterable[str]) -> str:
     return "".join(chunk for chunk in chunks if chunk)
 
 
-def _build_prompt(video_title: str, video_id: str, topic: Optional[str]) -> str:
+def _build_prompt(
+    video_title: str, video_id: str, topic: Optional[str], word_length: Optional[int]
+) -> str:
     script_format = f"""
 VIDEO_TITLE: {video_title}
 VIDEO_ID: {video_id}
@@ -54,10 +57,14 @@ FORMAT: {SCRIPT_FORMAT_VERSION}
 """
 
     topic_context = topic.strip() if topic else "a compelling YouTube topic"
+    word_count_guidance = (
+        f" Keep the overall length close to {word_length} words." if word_length else ""
+    )
     return (
         "You are a professional YouTube script writer. "
         "Create a concise script following the exact format below. "
         "Use vivid language suitable for voiceover and visuals. "
+        f"Aim for a compact script that can be delivered quickly.{word_count_guidance} "
         f"The script should focus on {topic_context}.\n\n"
         "Return only the script using the template. Do not include commentary.\n\n"
         f"Template:\n{script_format}"
@@ -101,17 +108,33 @@ def _save_script(video_title: str, video_id: str, content: str) -> Path:
     return file_path
 
 
-def generate_script(video_title: str, video_id: str, topic: Optional[str] = None) -> str:
-    prompt = _build_prompt(video_title, video_id, topic)
+def _generate_video_id() -> str:
+    return uuid.uuid4().hex[:8]
+
+
+def generate_script(
+    video_title: str,
+    video_id: Optional[str] = None,
+    topic: Optional[str] = None,
+    word_length: Optional[int] = None,
+) -> str:
+    resolved_video_id = video_id or _generate_video_id()
+    prompt = _build_prompt(video_title, resolved_video_id, topic, word_length)
     response = replicate.run(MODEL_NAME, input={"prompt": prompt})
     script = _collect_response_chunks(response)
-    _validate_script(script, video_title, video_id)
+    _validate_script(script, video_title, resolved_video_id)
     return script
 
 
-def generate_and_save_script(video_title: str, video_id: str, topic: Optional[str] = None) -> Path:
-    script = generate_script(video_title, video_id, topic)
-    return _save_script(video_title, video_id, script)
+def generate_and_save_script(
+    video_title: str,
+    video_id: Optional[str] = None,
+    topic: Optional[str] = None,
+    word_length: Optional[int] = None,
+) -> Path:
+    resolved_video_id = video_id or _generate_video_id()
+    script = generate_script(video_title, resolved_video_id, topic, word_length)
+    return _save_script(video_title, resolved_video_id, script)
 
 
 __all__ = [
