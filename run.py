@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dotenv import load_dotenv
 
+from modules.media_planner import generate_media_plan
 from modules.script_generator.generate import generate_and_save_script
 from modules.voice_generator import generate_voiceover
 
@@ -22,6 +23,14 @@ def main() -> None:
     )
     for path in audio_paths:
         print(f"Voiceover saved to {path}")
+
+    media_plan_path, _ = generate_media_plan(
+        script=script_text,
+        audio_paths=audio_paths,
+        video_title="How Inflation Works",
+        video_id=video_id,
+    )
+    print(f"Media plan saved to {media_plan_path}")
 
 
 if __name__ == "__main__":

@@ -12,7 +12,7 @@ This document provides a high level visualization of the modular video generatio
 [ Module 3 ] Voice Generator (TTS)
         |
         v
-[ Module 4 ] Image Planner
+[ Module 4 ] Media Planner
         |
         v
 [ Module 5 ] Image Generator
