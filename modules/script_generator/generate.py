@@ -131,10 +131,11 @@ def generate_and_save_script(
     video_id: Optional[str] = None,
     topic: Optional[str] = None,
     word_length: Optional[int] = None,
-) -> Path:
+) -> tuple[Path, str]:
     resolved_video_id = video_id or _generate_video_id()
     script = generate_script(video_title, resolved_video_id, topic, word_length)
-    return _save_script(video_title, resolved_video_id, script)
+    script_path = _save_script(video_title, resolved_video_id, script)
+    return script_path, resolved_video_id
 
 
 __all__ = [
