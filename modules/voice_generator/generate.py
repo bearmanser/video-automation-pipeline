@@ -10,7 +10,7 @@ from typing import Any, List, Optional, Tuple
 import replicate
 
 MODEL_NAME = "minimax/speech-02-turbo"
-DEFAULT_VOICE_ID = "Deep_Voice_Man"
+DEFAULT_VOICE_ID = "Wise_Woman"
 DEFAULT_AUDIO_FORMAT = "mp3"
 
 
@@ -33,7 +33,11 @@ def _prepare_output_dir(video_title: str, video_id: str) -> Path:
 
 
 def _extract_section(script: str, start: str, end: Optional[str]) -> str:
-    pattern = rf"\[{re.escape(start)}\]\s*(.*?)(?=\n\[{re.escape(end)}\]|\Z)" if end else rf"\[{re.escape(start)}\]\s*(.*)"
+    pattern = (
+        rf"\[{re.escape(start)}\]\s*(.*?)(?=\n\[{re.escape(end)}\]|\Z)"
+        if end
+        else rf"\[{re.escape(start)}\]\s*(.*)"
+    )
     match = re.search(pattern, script, flags=re.DOTALL | re.IGNORECASE)
     if not match:
         raise ValueError(f"Missing section [{start}] in script")
@@ -56,12 +60,16 @@ def _collect_sections(script: str) -> List[Tuple[str, str]]:
     outro = _extract_section(script, "OUTRO", None)
 
     ordered_sections: List[Tuple[str, str]] = [("hook", hook), ("intro", intro)]
-    ordered_sections.extend([(f"scene-{idx+1}", scene) for idx, scene in enumerate(scenes)])
+    ordered_sections.extend(
+        [(f"scene-{idx + 1}", scene) for idx, scene in enumerate(scenes)]
+    )
     ordered_sections.append(("outro", outro))
     return ordered_sections
 
 
-def _write_audio_response(output_dir: Path, name: str, audio_format: str, response: Any) -> Path:
+def _write_audio_response(
+    output_dir: Path, name: str, audio_format: str, response: Any
+) -> Path:
     output_path = output_dir / f"{name}.{audio_format}"
     with open(output_path, "wb") as file:
         file.write(response.read())
@@ -79,7 +87,7 @@ def generate_voiceover(
     volume: float = 1,
     bitrate: int = 128000,
     channel: str = "mono",
-    emotion: str = "fluent",
+    emotion: str = "happy",
     sample_rate: int = 32000,
     audio_format: str = DEFAULT_AUDIO_FORMAT,
     language_boost: str = "English",
