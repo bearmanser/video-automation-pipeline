@@ -86,12 +86,41 @@ def _transcribe_audio_file(audio_path: Path) -> list[dict]:
             input={
                 "audio": file,
                 "task": "transcribe",
-                "timestamp_granularities": ["word"],
+                "timestamp": "word",
+                "batch_size": 64,
+                "language": "None",
+                "diarise_audio": False,
             },
         )
 
-    segments = response.get("segments", []) if isinstance(response, dict) else []
+    if not isinstance(response, dict):
+        return []
+
+    output_section = response.get("output", {}) if isinstance(response.get("output", {}), dict) else {}
+    chunks = (
+        output_section.get("chunks")
+        or response.get("chunks")
+        or response.get("words")
+        or []
+    )
+
     words: list[dict] = []
+    for chunk in chunks:
+        text = str(chunk.get("text", "")).strip()
+        timestamp = chunk.get("timestamp") or chunk.get("timestamps")
+        if isinstance(timestamp, (list, tuple)) and len(timestamp) >= 2:
+            start = float(timestamp[0])
+            end = float(timestamp[1])
+        else:
+            start = float(chunk.get("start", 0.0))
+            end = float(chunk.get("end", start))
+        if text:
+            words.append({"word": text, "start": start, "end": end})
+
+    if words:
+        return words
+
+    segments = response.get("segments", []) or output_section.get("segments", [])
     for segment in segments:
         for word in segment.get("words", []) or []:
             start = float(word.get("start", 0.0))
