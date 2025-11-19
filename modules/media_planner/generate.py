@@ -33,6 +33,16 @@ def _generate_video_id() -> str:
     return uuid.uuid4().hex[:8]
 
 
+def _decode_unicode_escapes(value: str) -> str:
+    def _replace(match: re.Match) -> str:
+        try:
+            return chr(int(match.group(1), 16))
+        except ValueError:
+            return match.group(0)
+
+    return re.sub(r"\\u([0-9a-fA-F]{4})", _replace, value)
+
+
 def _build_prompt(script: str) -> str:
     instruction = (
         "You are a media planner. Read the provided narration script and decide when a new "
@@ -61,7 +71,7 @@ def _request_plan(script: str) -> list[dict]:
     for item in plan:
         if not isinstance(item, dict):
             continue
-        identifier = str(item.get("identifier", "")).strip()
+        identifier = _decode_unicode_escapes(str(item.get("identifier", "")).strip())
         image_prompt = str(item.get("image_prompt", "")).strip()
         if identifier and image_prompt:
             normalized_plan.append(
@@ -148,7 +158,13 @@ def _collect_transcripts(audio_paths: Sequence[Path]) -> list[dict]:
 
 
 def _find_timestamp(identifier: str, transcript_words: Sequence[dict]) -> Optional[float]:
-    tokens = [_normalize_word(token) for token in identifier.split() if token.strip()]
+    tokens = [
+        normalized
+        for token in identifier.split()
+        if token.strip()
+        for normalized in [_normalize_word(token)]
+        if normalized
+    ]
     if not tokens:
         return None
 

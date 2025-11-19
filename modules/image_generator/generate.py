@@ -15,6 +15,12 @@ MODEL_NAME = "google/imagen-4-fast"
 DEFAULT_ASPECT_RATIO = "16:9"
 OUTPUT_FORMAT = "jpg"
 SAFETY_FILTER_LEVEL = "block_only_high"
+STYLE_GUIDANCE = (
+    "unified modern financial visual style, consistent color palette of cool blues "
+    "and soft neutrals, clean professional composition, subtle gradients, sharp "
+    "clarity, cohesive lighting, refined minimal aesthetic, polished and "
+    "trustworthy tone"
+)
 
 
 def _slugify(value: str) -> str:
@@ -56,10 +62,11 @@ def _download_image(url: str, output_path: Path) -> Path:
 
 
 def _run_image_model(prompt: str):
+    styled_prompt = f"{prompt}\n\n{STYLE_GUIDANCE}" if prompt else STYLE_GUIDANCE
     return replicate.run(
         MODEL_NAME,
         input={
-            "prompt": prompt,
+            "prompt": styled_prompt,
             "aspect_ratio": DEFAULT_ASPECT_RATIO,
             "output_format": OUTPUT_FORMAT,
             "safety_filter_level": SAFETY_FILTER_LEVEL,
