@@ -7,8 +7,10 @@ from pathlib import Path
 from typing import Iterable, List, Sequence, Tuple
 
 import numpy as np
+from moviepy.audio.fx.all import audio_loop
 from moviepy.editor import (
     AudioFileClip,
+    CompositeAudioClip,
     CompositeVideoClip,
     ImageClip,
     VideoClip,
@@ -273,8 +275,18 @@ def compose_video(
             [clip for clip, _ in clip_pairs], method="compose"
         )
 
-        bg_music = AudioFileClip(BG_MUSIC).set_start(0)
-        final_clip = final_clip.set_audio(bg_music)
+        bg_music_base = AudioFileClip(BG_MUSIC)
+        target_duration = final_clip.duration or bg_music_base.duration or 0
+        bg_music = bg_music_base.fx(audio_loop, duration=target_duration).volumex(0.12)
+
+        narration_audio = final_clip.audio
+        composite_audio = (
+            CompositeAudioClip([narration_audio, bg_music])
+            if narration_audio
+            else bg_music
+        )
+
+        final_clip = final_clip.set_audio(composite_audio)
 
         final_clip.write_videofile(
             str(output_path),
