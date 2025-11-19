@@ -6,8 +6,8 @@ from itertools import zip_longest
 from pathlib import Path
 from typing import Iterable, List, Sequence, Tuple
 
-from PIL import Image
 from moviepy.editor import AudioFileClip, ImageClip, concatenate_videoclips, vfx
+from PIL import Image
 
 if not hasattr(Image, "ANTIALIAS"):
     Image.ANTIALIAS = Image.Resampling.LANCZOS  # type: ignore[attr-defined, assignment]
@@ -17,7 +17,7 @@ DEFAULT_FPS = 30
 DEFAULT_CODEC = "libx264"
 DEFAULT_AUDIO_CODEC = "aac"
 DEFAULT_TRANSITION_DURATION = 0.6
-DEFAULT_ZOOM_FACTOR = 1.04
+DEFAULT_ZOOM_FACTOR = 1
 
 
 def _slugify(value: str) -> str:
