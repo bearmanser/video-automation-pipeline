@@ -6,7 +6,11 @@ from itertools import zip_longest
 from pathlib import Path
 from typing import Iterable, List, Sequence, Tuple
 
+from PIL import Image
 from moviepy.editor import AudioFileClip, ImageClip, concatenate_videoclips, vfx
+
+if not hasattr(Image, "ANTIALIAS"):
+    Image.ANTIALIAS = Image.Resampling.LANCZOS  # type: ignore[attr-defined, assignment]
 
 DEFAULT_VIDEO_FILENAME = "final_video.mp4"
 DEFAULT_FPS = 30
