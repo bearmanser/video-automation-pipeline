@@ -6,7 +6,14 @@ from itertools import zip_longest
 from pathlib import Path
 from typing import Iterable, List, Sequence, Tuple
 
-from moviepy.editor import AudioFileClip, ImageClip, concatenate_videoclips, vfx
+from moviepy.editor import (
+    AudioFileClip,
+    CompositeVideoClip,
+    ImageClip,
+    VideoClip,
+    concatenate_videoclips,
+    vfx,
+)
 from PIL import Image
 
 if not hasattr(Image, "ANTIALIAS"):
@@ -18,6 +25,17 @@ DEFAULT_CODEC = "libx264"
 DEFAULT_AUDIO_CODEC = "aac"
 DEFAULT_TRANSITION_DURATION = 0.6
 DEFAULT_ZOOM_FACTOR = 1
+AVATAR_DIR = Path("assets/avatar")
+CASUAL_AVATAR_SEQUENCE = [
+    AVATAR_DIR / "casual_1.png",
+    AVATAR_DIR / "casual_2.png",
+    AVATAR_DIR / "casual_3.png",
+]
+AVATAR_PRIORITY = {
+    "hook": [AVATAR_DIR / "pointing_1.png"],
+    "intro": [AVATAR_DIR / "casual_1.png", AVATAR_DIR / "waving_1.png"],
+    "outro": [AVATAR_DIR / "waving_1.png", AVATAR_DIR / "casual_2.png"],
+}
 
 
 def _slugify(value: str) -> str:
@@ -46,6 +64,85 @@ def _apply_transitions(clip: ImageClip, transition_duration: float) -> ImageClip
 
     clip = clip.fx(vfx.fadein, transition_duration).fx(vfx.fadeout, transition_duration)
     return clip
+
+
+def _extract_section_name(audio_path: Path) -> str:
+    return audio_path.stem.lower()
+
+
+def _avatar_side_for_index(index: int) -> str:
+    return "left" if index % 2 == 0 else "right"
+
+
+def _resolve_avatar_path(preferences: Sequence[Path]) -> Path:
+    for candidate in preferences:
+        if candidate.exists():
+            return candidate
+
+    available = sorted(AVATAR_DIR.glob("*.png"))
+    if available:
+        return available[0]
+
+    raise FileNotFoundError("No avatar images found in assets/avatar")
+
+
+def _select_avatar_asset(section_name: str, section_index: int) -> Path:
+    section_key = next(
+        (key for key in AVATAR_PRIORITY if key in section_name.lower()), ""
+    )
+
+    if section_key:
+        preferred = AVATAR_PRIORITY[section_key]
+    else:
+        preferred = [CASUAL_AVATAR_SEQUENCE[section_index % len(CASUAL_AVATAR_SEQUENCE)]]
+
+    preferred += CASUAL_AVATAR_SEQUENCE
+    return _resolve_avatar_path(preferred)
+
+
+def _scale_avatar(avatar_clip: ImageClip, base_size: Tuple[int, int]) -> ImageClip:
+    base_width, base_height = base_size
+    if not base_width or not base_height:
+        return avatar_clip
+
+    max_width = base_width * 0.28
+    max_height = base_height * 0.8
+    width_factor = max_width / avatar_clip.w if avatar_clip.w else 1
+    height_factor = max_height / avatar_clip.h if avatar_clip.h else 1
+    scale_factor = min(width_factor, height_factor, 1)
+
+    return avatar_clip.resize(scale_factor)
+
+
+def _position_avatar(
+    avatar_clip: ImageClip, base_size: Tuple[int, int], side: str
+) -> Tuple[float, float]:
+    base_width, base_height = base_size
+    margin_x = base_width * 0.04
+    margin_y = base_height * 0.05
+
+    x = margin_x if side == "left" else base_width - avatar_clip.w - margin_x
+    y = base_height - avatar_clip.h - margin_y
+    return x, y
+
+
+def _build_avatar_clip(
+    *,
+    section_name: str,
+    section_index: int,
+    duration: float,
+    base_size: Tuple[int, int],
+) -> ImageClip:
+    avatar_path = _select_avatar_asset(section_name, section_index)
+    avatar_clip = ImageClip(str(avatar_path)).set_duration(duration)
+
+    side = _avatar_side_for_index(section_index)
+    if side == "left":
+        avatar_clip = avatar_clip.fx(vfx.mirror_x)
+
+    avatar_clip = _scale_avatar(avatar_clip, base_size)
+    position = _position_avatar(avatar_clip, base_size, side)
+    return avatar_clip.set_position(position)
 
 
 def _ensure_paths(paths: Sequence[Path | str], label: str) -> List[Path]:
@@ -102,10 +199,10 @@ def compose_video(
     output_dir = _prepare_output_dir(video_title, video_id)
     output_path = output_dir / DEFAULT_VIDEO_FILENAME
 
-    clip_pairs: List[Tuple[ImageClip, AudioFileClip]] = []
+    clip_pairs: List[Tuple[VideoClip, AudioFileClip]] = []
     try:
-        for audio_path, image_path in _pair_media(
-            resolved_audio_paths, resolved_image_paths
+        for index, (audio_path, image_path) in enumerate(
+            _pair_media(resolved_audio_paths, resolved_image_paths)
         ):
             audio_clip = AudioFileClip(str(audio_path))
             image_clip = ImageClip(str(image_path)).set_duration(audio_clip.duration)
@@ -119,8 +216,21 @@ def compose_video(
                 else 0
             )
             motion_clip = _apply_subtle_motion(image_clip, zoom_factor)
-            motion_clip = _apply_transitions(motion_clip, effective_transition)
-            clip_pairs.append((motion_clip, audio_clip))
+
+            section_name = _extract_section_name(audio_path)
+            avatar_clip = _build_avatar_clip(
+                section_name=section_name,
+                section_index=index,
+                duration=audio_clip.duration or 0,
+                base_size=motion_clip.size,
+            )
+
+            composite_clip = CompositeVideoClip(
+                [motion_clip, avatar_clip], size=motion_clip.size
+            ).set_audio(audio_clip)
+
+            composite_clip = _apply_transitions(composite_clip, effective_transition)
+            clip_pairs.append((composite_clip, audio_clip))
 
         if not clip_pairs:
             raise ValueError("Unable to create any video segments")
