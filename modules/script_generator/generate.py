@@ -42,14 +42,11 @@ FORMAT: {SCRIPT_FORMAT_VERSION}
 
 [SCENES]
 1. Scene title
-   Narration: 2-4 sentences of dialogue.
-   Visuals: 1-2 sentences that describe imagery.
+   3-5 conversational sentences that sound natural when spoken aloud.
 2. Scene title
-   Narration: 2-4 sentences of dialogue.
-   Visuals: 1-2 sentences that describe imagery.
+   3-5 conversational sentences that sound natural when spoken aloud.
 3. Scene title
-   Narration: 2-4 sentences of dialogue.
-   Visuals: 1-2 sentences that describe imagery.
+   3-5 conversational sentences that sound natural when spoken aloud.
 
 [OUTRO]
 - a brief takeaway and call to action.
@@ -62,7 +59,9 @@ FORMAT: {SCRIPT_FORMAT_VERSION}
     return (
         "You are a professional YouTube script writer. "
         "Create a concise script following the exact format below. "
-        "Use vivid language suitable for voiceover and visuals. "
+        "Write narration that feels natural, conversational, and paced for voiceover delivery. "
+        "Avoid describing specific visuals or camera directions because another module handles them. "
+        "Keep each scene focused on the spoken story only—no extra labels or visual instructions. "
         f"Aim for a compact script that can be delivered quickly.{word_count_guidance} "
         f"The script should focus on {topic_context}.\n\n"
         "Return only the script using the template. Do not include commentary.\n\n"
