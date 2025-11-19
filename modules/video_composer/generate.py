@@ -14,7 +14,8 @@ from moviepy.editor import (
     concatenate_videoclips,
     vfx,
 )
-from PIL import Image
+import numpy as np
+from PIL import Image, ImageOps
 
 if not hasattr(Image, "ANTIALIAS"):
     Image.ANTIALIAS = Image.Resampling.LANCZOS  # type: ignore[attr-defined, assignment]
@@ -126,6 +127,13 @@ def _position_avatar(
     return x, y
 
 
+def _load_avatar_image(path: Path, mirror: bool) -> np.ndarray:
+    with Image.open(path).convert("RGBA") as img:
+        if mirror:
+            img = ImageOps.mirror(img)
+        return np.array(img)
+
+
 def _build_avatar_clip(
     *,
     section_name: str,
@@ -134,11 +142,9 @@ def _build_avatar_clip(
     base_size: Tuple[int, int],
 ) -> ImageClip:
     avatar_path = _select_avatar_asset(section_name, section_index)
-    avatar_clip = ImageClip(str(avatar_path)).set_duration(duration)
-
     side = _avatar_side_for_index(section_index)
-    if side == "left":
-        avatar_clip = avatar_clip.fx(vfx.mirror_x)
+    avatar_image = _load_avatar_image(avatar_path, mirror=side == "left")
+    avatar_clip = ImageClip(avatar_image).set_duration(duration)
 
     avatar_clip = _scale_avatar(avatar_clip, base_size)
     position = _position_avatar(avatar_clip, base_size, side)
