@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dotenv import load_dotenv
 
+from modules.image_generator import generate_images
 from modules.media_planner import generate_media_plan
 from modules.script_generator.generate import generate_and_save_script
 from modules.voice_generator import generate_voiceover
@@ -31,6 +32,10 @@ def main() -> None:
         video_id=video_id,
     )
     print(f"Media plan saved to {media_plan_path}")
+
+    image_paths = generate_images(media_plan_path)
+    for path in image_paths:
+        print(f"Image saved to {path}")
 
 
 if __name__ == "__main__":
