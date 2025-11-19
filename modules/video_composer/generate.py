@@ -12,6 +12,7 @@ from moviepy.editor import (
     CompositeVideoClip,
     ImageClip,
     VideoClip,
+    VideoFileClip,
     concatenate_videoclips,
     vfx,
 )
@@ -187,6 +188,7 @@ def compose_video(
     *,
     audio_paths: Sequence[Path | str],
     image_paths: Sequence[Path | str],
+    short_video_path: Path | str | None = None,
     video_title: str,
     video_id: str,
     fps: int = DEFAULT_FPS,
@@ -195,6 +197,7 @@ def compose_video(
     resolution: Tuple[int, int] | None = None,
     transition_duration: float = DEFAULT_TRANSITION_DURATION,
     zoom_factor: float = DEFAULT_ZOOM_FACTOR,
+    short_video_index: int = 1,
 ) -> Path:
     """Compose the final video by pairing audio clips with generated images.
 
@@ -205,6 +208,11 @@ def compose_video(
 
     resolved_audio_paths = _ensure_paths(audio_paths, "audio")
     resolved_image_paths = _ensure_paths(image_paths, "image")
+    resolved_short_video = Path(short_video_path) if short_video_path else None
+    if resolved_short_video and not resolved_short_video.exists():
+        raise FileNotFoundError(
+            f"Missing short video file: {resolved_short_video}"  # pragma: no cover
+        )
     output_dir = _prepare_output_dir(video_title, video_id)
     output_path = output_dir / DEFAULT_VIDEO_FILENAME
 
@@ -214,28 +222,45 @@ def compose_video(
             _pair_media(resolved_audio_paths, resolved_image_paths)
         ):
             audio_clip = AudioFileClip(str(audio_path))
-            image_clip = ImageClip(str(image_path)).set_duration(audio_clip.duration)
-            if resolution:
-                image_clip = image_clip.resize(newsize=resolution)
-            image_clip = image_clip.set_audio(audio_clip)
+            use_short_video = (
+                resolved_short_video is not None and index == short_video_index
+            )
+            if use_short_video:
+                visual_clip: VideoClip = VideoFileClip(
+                    str(resolved_short_video)
+                ).without_audio()
+                target_duration = audio_clip.duration or visual_clip.duration
+                if target_duration:
+                    visual_clip = visual_clip.fx(vfx.loop, duration=target_duration)
+                    visual_clip = visual_clip.subclip(0, target_duration)
+                if resolution:
+                    visual_clip = visual_clip.resize(newsize=resolution)
+            else:
+                image_clip = ImageClip(str(image_path)).set_duration(
+                    audio_clip.duration
+                )
+                if resolution:
+                    image_clip = image_clip.resize(newsize=resolution)
+                visual_clip = _apply_subtle_motion(image_clip, zoom_factor)
+
+            visual_clip = visual_clip.set_audio(audio_clip)
 
             effective_transition = (
                 min(transition_duration, audio_clip.duration / 2)
                 if audio_clip.duration and transition_duration
                 else 0
             )
-            motion_clip = _apply_subtle_motion(image_clip, zoom_factor)
 
             section_name = _extract_section_name(audio_path)
             avatar_clip = _build_avatar_clip(
                 section_name=section_name,
                 section_index=index,
                 duration=audio_clip.duration or 0,
-                base_size=motion_clip.size,
+                base_size=visual_clip.size,
             )
 
             composite_clip = CompositeVideoClip(
-                [motion_clip, avatar_clip], size=motion_clip.size
+                [visual_clip, avatar_clip], size=visual_clip.size
             ).set_audio(audio_clip)
 
             composite_clip = _apply_transitions(composite_clip, effective_transition)

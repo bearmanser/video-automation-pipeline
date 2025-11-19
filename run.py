@@ -44,9 +44,13 @@ def main() -> None:
     for path in image_paths:
         print(f"Image saved to {path}")
 
+    short_video_path = generate_short_video(media_plan_path)
+    print(f"Short video saved to {short_video_path}")
+
     video_path = compose_video(
         audio_paths=audio_paths,
         image_paths=image_paths,
+        short_video_path=short_video_path,
         video_title=video_title,
         video_id=video_id,
     )
@@ -54,9 +58,6 @@ def main() -> None:
 
     thumbnail_path = generate_thumbnail(media_plan_path)
     print(f"Thumbnail saved to {thumbnail_path}")
-
-    short_video_path = generate_short_video(media_plan_path)
-    print(f"Short video saved to {short_video_path}")
 
     metadata_path = generate_metadata(
         video_title=video_title,
