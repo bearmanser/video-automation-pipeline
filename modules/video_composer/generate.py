@@ -27,9 +27,7 @@ def _ensure_paths(paths: Sequence[Path | str], label: str) -> List[Path]:
         raise ValueError(f"No {label} paths provided")
     missing = [str(path) for path in resolved if not path.exists()]
     if missing:
-        raise FileNotFoundError(
-            f"Missing {label} files: {', '.join(missing)}"
-        )
+        raise FileNotFoundError(f"Missing {label} files: {', '.join(missing)}")
     return resolved
 
 

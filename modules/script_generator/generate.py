@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 import re
 import uuid
 from pathlib import Path
@@ -74,7 +73,9 @@ FORMAT: {SCRIPT_FORMAT_VERSION}
 def _validate_script(script: str, video_title: str, video_id: str) -> None:
     errors = []
 
-    if not re.search(rf"^VIDEO_TITLE:\s*{re.escape(video_title)}\s*$", script, re.MULTILINE):
+    if not re.search(
+        rf"^VIDEO_TITLE:\s*{re.escape(video_title)}\s*$", script, re.MULTILINE
+    ):
         errors.append("Missing or incorrect VIDEO_TITLE header.")
 
     if not re.search(rf"^VIDEO_ID:\s*{re.escape(video_id)}\s*$", script, re.MULTILINE):
