@@ -6,6 +6,7 @@ from itertools import zip_longest
 from pathlib import Path
 from typing import Iterable, List, Sequence, Tuple
 
+import numpy as np
 from moviepy.editor import (
     AudioFileClip,
     CompositeVideoClip,
@@ -14,7 +15,6 @@ from moviepy.editor import (
     concatenate_videoclips,
     vfx,
 )
-import numpy as np
 from PIL import Image, ImageOps
 
 if not hasattr(Image, "ANTIALIAS"):
@@ -27,6 +27,7 @@ DEFAULT_AUDIO_CODEC = "aac"
 DEFAULT_TRANSITION_DURATION = 0.6
 DEFAULT_ZOOM_FACTOR = 1
 AVATAR_DIR = Path("assets/avatar")
+BG_MUSIC = "assets/music/bg.mp3"
 CASUAL_AVATAR_SEQUENCE = [
     AVATAR_DIR / "casual_1.png",
     AVATAR_DIR / "casual_2.png",
@@ -95,7 +96,9 @@ def _select_avatar_asset(section_name: str, section_index: int) -> Path:
     if section_key:
         preferred = AVATAR_PRIORITY[section_key]
     else:
-        preferred = [CASUAL_AVATAR_SEQUENCE[section_index % len(CASUAL_AVATAR_SEQUENCE)]]
+        preferred = [
+            CASUAL_AVATAR_SEQUENCE[section_index % len(CASUAL_AVATAR_SEQUENCE)]
+        ]
 
     preferred += CASUAL_AVATAR_SEQUENCE
     return _resolve_avatar_path(preferred)
@@ -244,6 +247,10 @@ def compose_video(
         final_clip = concatenate_videoclips(
             [clip for clip, _ in clip_pairs], method="compose"
         )
+
+        bg_music = AudioFileClip(BG_MUSIC).set_start(0)
+        final_clip = final_clip.set_audio(bg_music)
+
         final_clip.write_videofile(
             str(output_path),
             fps=fps,
