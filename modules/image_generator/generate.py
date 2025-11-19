@@ -11,7 +11,10 @@ from typing import Any, Iterable, List
 import replicate
 import urllib.request
 
-MODEL_NAME = "black-forest-labs/flux-1.1-pro"
+MODEL_NAME = "google/imagen-4-fast"
+DEFAULT_ASPECT_RATIO = "16:9"
+OUTPUT_FORMAT = "jpg"
+SAFETY_FILTER_LEVEL = "block_only_high"
 
 
 def _slugify(value: str) -> str:
@@ -52,20 +55,42 @@ def _download_image(url: str, output_path: Path) -> Path:
     return output_path
 
 
-def _run_image_model(prompt: str) -> str:
-    response = replicate.run(MODEL_NAME, input={"prompt": prompt})
-    if isinstance(response, str):
-        return response
-    if isinstance(response, Iterable):
-        items = list(response)
-        if items:
-            return str(items[0])
-    raise ValueError("Image generation did not return a usable URL")
+def _run_image_model(prompt: str):
+    return replicate.run(
+        MODEL_NAME,
+        input={
+            "prompt": prompt,
+            "aspect_ratio": DEFAULT_ASPECT_RATIO,
+            "output_format": OUTPUT_FORMAT,
+            "safety_filter_level": SAFETY_FILTER_LEVEL,
+        },
+    )
+
+
+def _persist_generated_image(output_obj: Any, output_path: Path) -> Path:
+    """Write replicate output to disk, supporting both file objects and URLs."""
+
+    if hasattr(output_obj, "read"):
+        output_path.write_bytes(output_obj.read())
+        return output_path
+
+    if hasattr(output_obj, "url"):
+        return _download_image(str(output_obj.url()), output_path)
+
+    if isinstance(output_obj, str):
+        return _download_image(output_obj, output_path)
+
+    if isinstance(output_obj, Iterable):
+        for item in output_obj:
+            if isinstance(item, str):
+                return _download_image(item, output_path)
+
+    raise ValueError("Image generation did not return usable image data")
 
 
 def _build_filename(index: int, timestamp: float) -> str:
     timestamp_part = f"{timestamp:.2f}".replace(".", "-")
-    return f"{index:03d}-t{timestamp_part}.png"
+    return f"{index:03d}-t{timestamp_part}.{OUTPUT_FORMAT}"
 
 
 def generate_images(media_plan_path: Path | str) -> List[Path]:
@@ -91,8 +116,8 @@ def generate_images(media_plan_path: Path | str) -> List[Path]:
             continue
 
         filename = _build_filename(idx, float(timestamp))
-        image_url = _run_image_model(prompt)
-        output_path = _download_image(image_url, output_dir / filename)
+        output_obj = _run_image_model(prompt)
+        output_path = _persist_generated_image(output_obj, output_dir / filename)
         image_paths.append(output_path)
 
     return image_paths
