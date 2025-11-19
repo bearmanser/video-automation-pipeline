@@ -12,6 +12,7 @@ import replicate
 MODEL_NAME = "minimax/speech-02-turbo"
 DEFAULT_VOICE_ID = "Wise_Woman"
 DEFAULT_AUDIO_FORMAT = "mp3"
+DEFAULT_PAUSE_SECONDS = 0.5
 
 
 def _slugify(value: str) -> str:
@@ -67,6 +68,16 @@ def _collect_sections(script: str) -> List[Tuple[str, str]]:
     return ordered_sections
 
 
+def _insert_pauses(text: str, pause_seconds: float = DEFAULT_PAUSE_SECONDS) -> str:
+    pause_marker = f"<# {pause_seconds:.1f} #>".replace(" ", "")
+    punctuated = re.sub(
+        r"([.!?])\s+",
+        lambda match: f"{match.group(1)} {pause_marker} ",
+        text.strip(),
+    )
+    return f"{pause_marker} {punctuated} {pause_marker}".strip()
+
+
 def _write_audio_response(
     output_dir: Path, name: str, audio_format: str, response: Any
 ) -> Path:
@@ -105,10 +116,11 @@ def generate_voiceover(
 
     audio_paths: list[Path] = []
     for name, text in sections:
+        spoken_text = _insert_pauses(text)
         response = replicate.run(
             MODEL_NAME,
             input={
-                "text": text,
+                "text": spoken_text,
                 "pitch": pitch,
                 "speed": speed,
                 "volume": volume,
