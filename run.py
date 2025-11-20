@@ -21,7 +21,7 @@ def main() -> None:
     topic = "Inflation basics"
 
     script_path, video_id = generate_and_save_script(
-        video_title, topic=topic, word_length=1000
+        video_title, topic=topic, word_length=200
     )
     print(f"Script saved to {script_path}")
 

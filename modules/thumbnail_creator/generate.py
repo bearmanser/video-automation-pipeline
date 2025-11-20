@@ -68,20 +68,22 @@ def _run_thumbnail_model(prompt: str):
 
 def _collect_first_image(output_obj: Any) -> str:
     if hasattr(output_obj, "url"):
-        return str(output_obj.url())
+        return str(output_obj.url)
 
     if isinstance(output_obj, (str, Path)):
         return output_obj
 
     if hasattr(output_obj, "read"):
-        raise ValueError("Thumbnail output is a file-like object; expected URL or string path")
+        raise ValueError(
+            "Thumbnail output is a file-like object; expected URL or string path"
+        )
 
     if isinstance(output_obj, Iterable):
         for item in output_obj:
             if isinstance(item, str):
                 return item
             if hasattr(item, "url"):
-                return str(item.url())
+                return str(item.url)
 
     raise ValueError("Thumbnail generation did not return a usable URL")
 

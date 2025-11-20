@@ -277,7 +277,7 @@ def compose_video(
 
         bg_music_base = AudioFileClip(BG_MUSIC)
         target_duration = final_clip.duration or bg_music_base.duration or 0
-        bg_music = bg_music_base.fx(audio_loop, duration=target_duration).volumex(0.12)
+        bg_music = bg_music_base.fx(audio_loop, duration=target_duration).volumex(0.5)
 
         narration_audio = final_clip.audio
         composite_audio = (

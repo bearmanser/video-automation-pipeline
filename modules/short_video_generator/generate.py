@@ -49,7 +49,9 @@ def _prepare_output_dir(video_title: str, video_id: str) -> Path:
 
 def _select_prompt(entries: list[dict]) -> str:
     if len(entries) < 2:
-        raise ValueError("Media plan must contain at least two entries to pick the second prompt")
+        raise ValueError(
+            "Media plan must contain at least two entries to pick the second prompt"
+        )
 
     prompt = str(entries[1].get("image_prompt", "")).strip()
     if not prompt:
@@ -59,13 +61,15 @@ def _select_prompt(entries: list[dict]) -> str:
 
 def _collect_first_url(output_obj: Any) -> str:
     if hasattr(output_obj, "url"):
-        return str(output_obj.url())
+        return str(output_obj.url)
 
     if isinstance(output_obj, (str, Path)):
         return output_obj
 
     if hasattr(output_obj, "read"):
-        raise ValueError("Video output is a file-like object; expected URL or string path")
+        raise ValueError(
+            "Video output is a file-like object; expected URL or string path"
+        )
 
     if isinstance(output_obj, Iterable):
         for item in output_obj:
@@ -94,7 +98,13 @@ def _persist_video(output_obj: Any, output_path: Path) -> Path:
 
 
 def _run_video_model(
-    *, prompt: str, duration: int, fps: int, aspect_ratio: str, resolution: str, camera_fixed: bool
+    *,
+    prompt: str,
+    duration: int,
+    fps: int,
+    aspect_ratio: str,
+    resolution: str,
+    camera_fixed: bool,
 ):
     return replicate.run(
         MODEL_NAME,
