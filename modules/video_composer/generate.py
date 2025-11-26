@@ -176,6 +176,29 @@ def _prepare_output_dir(video_title: str, video_id: str) -> Path:
     return output_dir
 
 
+def _determine_base_resolution(
+    *,
+    resolution: Tuple[int, int] | None,
+    short_video_path: Path | None,
+    image_paths: Sequence[Path],
+) -> Tuple[int, int] | None:
+    if resolution:
+        return resolution
+
+    if short_video_path:
+        with VideoFileClip(str(short_video_path)) as clip:
+            if clip.w and clip.h:
+                return int(clip.w), int(clip.h)
+
+    for image_path in image_paths:
+        with Image.open(image_path) as img:
+            width, height = img.size
+            if width and height:
+                return int(width), int(height)
+
+    return None
+
+
 def _pair_media(
     audio_paths: Sequence[Path], image_paths: Sequence[Path]
 ) -> Iterable[Tuple[Path, Path]]:
@@ -206,6 +229,10 @@ def compose_video(
     The composer adds a subtle Ken Burns-style zoom plus fade-in/fade-out
     transitions so each scene change feels smooth and highlights important beats.
     Control these effects with ``transition_duration`` and ``zoom_factor``.
+
+    If a ``resolution`` is not provided, the composer will infer a base resolution
+    from the short video (when available) or the first generated image so every
+    visual clip is scaled consistently.
     """
 
     resolved_audio_paths = _ensure_paths(audio_paths, "audio")
@@ -218,31 +245,44 @@ def compose_video(
     output_dir = _prepare_output_dir(video_title, video_id)
     output_path = output_dir / DEFAULT_VIDEO_FILENAME
 
+    base_resolution = _determine_base_resolution(
+        resolution=resolution,
+        short_video_path=resolved_short_video,
+        image_paths=resolved_image_paths,
+    )
+
     clip_pairs: List[Tuple[VideoClip, AudioFileClip]] = []
+    short_video_clip: VideoFileClip | None = None
+    final_clip: VideoClip | None = None
+    bg_music_base: AudioFileClip | None = None
+    bg_music: AudioFileClip | None = None
+    composite_audio: CompositeAudioClip | None = None
+
     try:
+        if resolved_short_video is not None:
+            short_video_clip = VideoFileClip(str(resolved_short_video)).without_audio()
+
         for index, (audio_path, image_path) in enumerate(
             _pair_media(resolved_audio_paths, resolved_image_paths)
         ):
             audio_clip = AudioFileClip(str(audio_path))
             use_short_video = (
-                resolved_short_video is not None and index == short_video_index
+                short_video_clip is not None and index == short_video_index
             )
             if use_short_video:
-                visual_clip: VideoClip = VideoFileClip(
-                    str(resolved_short_video)
-                ).without_audio()
+                visual_clip: VideoClip = short_video_clip
                 target_duration = audio_clip.duration or visual_clip.duration
                 if target_duration:
                     visual_clip = visual_clip.fx(vfx.loop, duration=target_duration)
                     visual_clip = visual_clip.subclip(0, target_duration)
-                if resolution:
-                    visual_clip = visual_clip.resize(newsize=resolution)
+                if base_resolution:
+                    visual_clip = visual_clip.resize(newsize=base_resolution)
             else:
                 image_clip = ImageClip(str(image_path)).set_duration(
                     audio_clip.duration
                 )
-                if resolution:
-                    image_clip = image_clip.resize(newsize=resolution)
+                if base_resolution:
+                    image_clip = image_clip.resize(newsize=base_resolution)
                 visual_clip = _apply_subtle_motion(image_clip, zoom_factor)
 
             visual_clip = visual_clip.set_audio(audio_clip)
@@ -294,11 +334,41 @@ def compose_video(
             codec=codec,
             audio_codec=audio_codec,
         )
-        final_clip.close()
     finally:
         for clip, audio_clip in clip_pairs:
-            clip.close()
-            audio_clip.close()
+            try:
+                clip.close()
+            except Exception:
+                pass
+            try:
+                audio_clip.close()
+            except Exception:
+                pass
+        if final_clip is not None:
+            try:
+                final_clip.close()
+            except Exception:
+                pass
+        if composite_audio is not None:
+            try:
+                composite_audio.close()
+            except Exception:
+                pass
+        if bg_music is not None:
+            try:
+                bg_music.close()
+            except Exception:
+                pass
+        if bg_music_base is not None:
+            try:
+                bg_music_base.close()
+            except Exception:
+                pass
+        if short_video_clip is not None:
+            try:
+                short_video_clip.close()
+            except Exception:
+                pass
 
     return output_path
 
