@@ -252,18 +252,25 @@ def compose_video(
     )
 
     clip_pairs: List[Tuple[VideoClip, AudioFileClip]] = []
+    short_video_clip: VideoFileClip | None = None
+    final_clip: VideoClip | None = None
+    bg_music_base: AudioFileClip | None = None
+    bg_music: AudioFileClip | None = None
+    composite_audio: CompositeAudioClip | None = None
+
     try:
+        if resolved_short_video is not None:
+            short_video_clip = VideoFileClip(str(resolved_short_video)).without_audio()
+
         for index, (audio_path, image_path) in enumerate(
             _pair_media(resolved_audio_paths, resolved_image_paths)
         ):
             audio_clip = AudioFileClip(str(audio_path))
             use_short_video = (
-                resolved_short_video is not None and index == short_video_index
+                short_video_clip is not None and index == short_video_index
             )
             if use_short_video:
-                visual_clip: VideoClip = VideoFileClip(
-                    str(resolved_short_video)
-                ).without_audio()
+                visual_clip: VideoClip = short_video_clip
                 target_duration = audio_clip.duration or visual_clip.duration
                 if target_duration:
                     visual_clip = visual_clip.fx(vfx.loop, duration=target_duration)
@@ -327,11 +334,41 @@ def compose_video(
             codec=codec,
             audio_codec=audio_codec,
         )
-        final_clip.close()
     finally:
         for clip, audio_clip in clip_pairs:
-            clip.close()
-            audio_clip.close()
+            try:
+                clip.close()
+            except Exception:
+                pass
+            try:
+                audio_clip.close()
+            except Exception:
+                pass
+        if final_clip is not None:
+            try:
+                final_clip.close()
+            except Exception:
+                pass
+        if composite_audio is not None:
+            try:
+                composite_audio.close()
+            except Exception:
+                pass
+        if bg_music is not None:
+            try:
+                bg_music.close()
+            except Exception:
+                pass
+        if bg_music_base is not None:
+            try:
+                bg_music_base.close()
+            except Exception:
+                pass
+        if short_video_clip is not None:
+            try:
+                short_video_clip.close()
+            except Exception:
+                pass
 
     return output_path
 
