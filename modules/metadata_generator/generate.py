@@ -55,11 +55,10 @@ def _build_prompt(video_title: str, entries: list[dict], format_version: str) ->
 
     return (
         "You are crafting metadata for a YouTube video. "
-        "Return a compact JSON object with these keys: title, description, tags, and shorts_title. "
+        "Return a compact JSON object with these keys: title, description and tags. "
         "The title should be punchy and under 70 characters. "
         "The description should be 2-3 sentences summarizing the video and inviting engagement. "
         "Provide 8-12 concise tags as a comma-separated string. "
-        "shorts_title should be an eye-catching title suitable for YouTube Shorts. "
         "Do not include any explanations or markdown—only return JSON.\n\n"
         f"VIDEO_TITLE: {video_title}\n"
         f"FORMAT: {format_version}\n"
