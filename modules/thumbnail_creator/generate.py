@@ -1,4 +1,9 @@
-"""Thumbnail creation module using Google's Imagen model."""
+"""Thumbnail creation module using Google's Imagen model.
+
+This implementation uses the google/imagen-4-fast model via Replicate and builds
+the prompt directly from the video title with dedicated YouTube thumbnail style
+guidance.
+"""
 
 from __future__ import annotations
 
@@ -16,8 +21,9 @@ DEFAULT_OUTPUT_FORMAT = "jpg"
 DEFAULT_SAFETY_FILTER_LEVEL = "block_only_high"
 THUMBNAIL_FILENAME = "thumbnail.jpg"
 STYLE_GUIDANCE = (
-    "high-impact YouTube thumbnail style, bold lighting, crisp focal subject, clear "
-    "contrast, cinematic depth, compelling and legible composition"
+    "high-impact YouTube thumbnail, cinematic depth, bold focal subject, dramatic "
+    "lighting, clear contrast, vibrant yet professional palette, clean negative "
+    "space for title placement, modern and trustworthy aesthetic"
 )
 
 
@@ -45,12 +51,11 @@ def _prepare_output_dir(video_title: str, video_id: str) -> Path:
     return output_dir
 
 
-def _build_prompt(video_title: str, entries: list[dict]) -> str:
-    core_prompt = video_title.strip() or "YouTube video"
-    if entries:
-        top_prompt = str(entries[0].get("image_prompt", "")).strip()
-        if top_prompt:
-            core_prompt = f"{top_prompt}\n\nTitle: {video_title}"
+def _build_prompt(video_title: str) -> str:
+    core_prompt = (
+        f"Eye-catching YouTube thumbnail about: {video_title}. Include a clear focal "
+        f"subject and composition that quickly communicates the topic."
+    )
     return f"{core_prompt}\n\n{STYLE_GUIDANCE}"
 
 
@@ -71,7 +76,7 @@ def _collect_first_image(output_obj: Any) -> str:
         return str(output_obj.url)
 
     if isinstance(output_obj, (str, Path)):
-        return output_obj
+        return str(output_obj)
 
     if hasattr(output_obj, "read"):
         raise ValueError(
@@ -101,22 +106,18 @@ def _persist_thumbnail(output_obj: Any, output_path: Path) -> Path:
 
 
 def generate_thumbnail(media_plan_path: Path | str) -> Path:
-    """Generate a single thumbnail image based on the media plan."""
+    """Generate a single thumbnail image based on the video title."""
 
     path = Path(media_plan_path)
     payload = _load_media_plan(path)
 
-    video_title = str(payload.get("video_title", "video"))
-    video_id = str(payload.get("video_id", ""))
+    video_title = str(payload.get("video_title", "video")).strip()
+    video_id = str(payload.get("video_id", "")).strip()
     if not video_id:
         raise ValueError("Media plan missing 'video_id'")
 
-    entries = payload.get("entries") or []
-    if not isinstance(entries, list):
-        raise ValueError("Media plan entries must be a list")
-
-    prompt = _build_prompt(video_title, entries)
-    output_dir = _prepare_output_dir(video_title, video_id)
+    prompt = _build_prompt(video_title or "YouTube video")
+    output_dir = _prepare_output_dir(video_title or "video", video_id)
     output_path = output_dir / THUMBNAIL_FILENAME
 
     response = _run_thumbnail_model(prompt)

@@ -10,6 +10,7 @@ from modules.metadata_generator.generate import generate_metadata
 from modules.script_generator.generate import generate_and_save_script
 from modules.short_video_generator.generate import generate_short_video
 from modules.thumbnail_creator.generate import generate_thumbnail
+from modules.uploader.generate import upload_video
 from modules.video_composer import compose_video
 from modules.voice_generator.generate import generate_voiceover
 
@@ -17,11 +18,11 @@ load_dotenv()
 
 
 def main() -> None:
-    video_title = "How Inflation Works"
-    topic = "Inflation basics"
+    video_title = "Top in-demand skills that boost earning potential"
+    topic = video_title
 
     script_path, video_id = generate_and_save_script(
-        video_title, topic=topic, word_length=200
+        video_title, topic=topic, word_length=1000
     )
     print(f"Script saved to {script_path}")
 
@@ -65,6 +66,13 @@ def main() -> None:
         video_id=video_id,
     )
     print(f"Metadata saved to {metadata_path}")
+
+    upload_response = upload_video(
+        video_path=video_path,
+        metadata_path=metadata_path,
+        thumbnail_path=thumbnail_path,
+    )
+    print(f"Upload complete: {upload_response}")
 
 
 if __name__ == "__main__":
