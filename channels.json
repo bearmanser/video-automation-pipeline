@@ -4,7 +4,8 @@
       "name": "default",
       "image_style_guidance": "unified modern financial visual style, consistent color palette of cool blues and soft neutrals, clean professional composition, subtle gradients, sharp clarity, cohesive lighting, refined minimal aesthetic, polished and trustworthy tone",
       "short_video_style_guidance": "cinematic storytelling, smooth camera presence, steady framing, confident yet friendly tone, balanced lighting, cohesive color palette, and clean modern motion pacing",
-      "avatar": "auto",
+      "avatar_path": null,
+      "avatar_enabled": false,
       "voice_id": "Wise_Woman",
       "bg_music": "assets/music/bg.mp3"
     }

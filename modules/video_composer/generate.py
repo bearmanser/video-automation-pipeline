@@ -28,17 +28,12 @@ DEFAULT_FPS = 30
 DEFAULT_CODEC = "libx264"
 DEFAULT_AUDIO_CODEC = "aac"
 DEFAULT_TRANSITION_DURATION = 0.6
-AVATAR_DIR = Path("assets/avatar")
 BG_MUSIC = "assets/music/bg.mp3"
-CASUAL_AVATAR_SEQUENCE = [
-    AVATAR_DIR / "casual_1.png",
-    AVATAR_DIR / "casual_2.png",
-    AVATAR_DIR / "casual_3.png",
-]
-AVATAR_PRIORITY = {
-    "hook": [AVATAR_DIR / "pointing_1.png"],
-    "intro": [AVATAR_DIR / "casual_1.png", AVATAR_DIR / "waving_1.png"],
-    "outro": [AVATAR_DIR / "waving_1.png", AVATAR_DIR / "casual_2.png"],
+CASUAL_AVATAR_FILENAMES = ["casual_1.png", "casual_2.png", "casual_3.png"]
+AVATAR_PRIORITY_FILENAMES = {
+    "hook": ["pointing_1.png"],
+    "intro": ["casual_1.png", "waving_1.png"],
+    "outro": ["waving_1.png", "casual_2.png"],
 }
 
 
@@ -65,41 +60,31 @@ def _avatar_side_for_index(index: int) -> str:
     return "left" if index % 2 == 0 else "right"
 
 
-def _resolve_avatar_path(preferences: Sequence[Path]) -> Path:
+def _resolve_avatar_path(preferences: Sequence[Path], avatar_dir: Path) -> Path:
     for candidate in preferences:
         if candidate.exists():
             return candidate
 
-    available = sorted(AVATAR_DIR.glob("*.png"))
-    if available:
-        return available[0]
-
-    raise FileNotFoundError("No avatar images found in assets/avatar")
+    raise FileNotFoundError(f"No avatar images found in {avatar_dir}")
 
 
 
 
-def _select_avatar_asset(
-    section_name: str, section_index: int, avatar_override: Path | None
-) -> Path:
-    if avatar_override:
-        if avatar_override.exists():
-            return avatar_override
-        raise FileNotFoundError(f"Avatar override not found: {avatar_override}")
-
+def _select_avatar_asset(section_name: str, section_index: int, avatar_dir: Path) -> Path:
     section_key = next(
-        (key for key in AVATAR_PRIORITY if key in section_name.lower()), "",
+        (key for key in AVATAR_PRIORITY_FILENAMES if key in section_name.lower()), "",
     )
 
     if section_key:
-        preferred = AVATAR_PRIORITY[section_key]
+        preferred = [avatar_dir / name for name in AVATAR_PRIORITY_FILENAMES[section_key]]
     else:
         preferred = [
-            CASUAL_AVATAR_SEQUENCE[section_index % len(CASUAL_AVATAR_SEQUENCE)]
+            avatar_dir
+            / CASUAL_AVATAR_FILENAMES[section_index % len(CASUAL_AVATAR_FILENAMES)]
         ]
 
-    preferred += CASUAL_AVATAR_SEQUENCE
-    return _resolve_avatar_path(preferred)
+    preferred += [avatar_dir / name for name in CASUAL_AVATAR_FILENAMES]
+    return _resolve_avatar_path(preferred, avatar_dir)
 
 
 def _scale_avatar_image(
@@ -141,7 +126,7 @@ def _render_frame_with_avatar(
     base_resolution: Tuple[int, int] | None,
     section_name: str,
     section_index: int,
-    avatar_override: Path | None,
+    avatar_dir: Path | None,
     avatar_enabled: bool,
 ) -> np.ndarray:
     side = _avatar_side_for_index(section_index)
@@ -150,8 +135,8 @@ def _render_frame_with_avatar(
         if base_resolution:
             base_image = base_image.resize(base_resolution, Image.ANTIALIAS)
 
-        if avatar_enabled:
-            avatar_path = _select_avatar_asset(section_name, section_index, avatar_override)
+        if avatar_enabled and avatar_dir:
+            avatar_path = _select_avatar_asset(section_name, section_index, avatar_dir)
 
             with Image.open(avatar_path).convert("RGBA") as avatar_image:
                 if side == "left":
@@ -171,13 +156,16 @@ def _build_avatar_overlay(
     section_index: int,
     duration: float,
     base_size: Tuple[int, int],
-    avatar_override: Path | None,
+    avatar_dir: Path | None,
 ) -> Optional[ImageClip]:
     base_width, base_height = int(base_size[0] or 0), int(base_size[1] or 0)
     if not base_width or not base_height:
         return None
 
-    avatar_path = _select_avatar_asset(section_name, section_index, avatar_override)
+    if avatar_dir is None:
+        return None
+
+    avatar_path = _select_avatar_asset(section_name, section_index, avatar_dir)
     side = _avatar_side_for_index(section_index)
 
     with Image.open(avatar_path).convert("RGBA") as avatar_image:
@@ -295,8 +283,8 @@ def compose_video(
     bg_music_base: AudioFileClip | None = None
     bg_music: AudioFileClip | None = None
     composite_audio: CompositeAudioClip | None = None
-    avatar_override = Path(avatar_path) if avatar_path else None
-    use_avatar = avatar_enabled
+    avatar_dir = Path(avatar_path) if avatar_path else None
+    use_avatar = avatar_enabled and avatar_dir is not None
 
     try:
         if resolved_short_video is not None:
@@ -325,7 +313,7 @@ def compose_video(
                         section_index=index,
                         duration=audio_clip.duration or visual_clip.duration or 0,
                         base_size=visual_clip.size,
-                        avatar_override=avatar_override,
+                        avatar_dir=avatar_dir,
                     )
                     if use_avatar
                     else None
@@ -340,7 +328,7 @@ def compose_video(
                     base_resolution=base_resolution,
                     section_name=section_name,
                     section_index=index,
-                    avatar_override=avatar_override,
+                    avatar_dir=avatar_dir,
                     avatar_enabled=use_avatar,
                 )
                 visual_clip = ImageClip(composited_frame).set_duration(

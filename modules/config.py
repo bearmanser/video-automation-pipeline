@@ -31,7 +31,7 @@ class ChannelConfig:
     image_style_guidance: str = DEFAULT_IMAGE_STYLE_GUIDANCE
     short_video_style_guidance: str = DEFAULT_SHORT_VIDEO_STYLE_GUIDANCE
     avatar_path: str | None = None
-    avatar_enabled: bool = True
+    avatar_enabled: bool = False
     voice_id: str = DEFAULT_VOICE_ID
     bg_music: str = DEFAULT_BG_MUSIC
     token_path: str | None = None
@@ -59,9 +59,9 @@ def _build_channel(entry: dict) -> ChannelConfig:
     if not name:
         raise ChannelConfigError("Channel entry is missing a name")
 
-    avatar_setting = entry.get("avatar", "auto")
-    avatar_enabled = avatar_setting is not None
-    avatar_path = None if avatar_setting in (None, "auto") else _coerce_string(avatar_setting)
+    avatar_path = _coerce_string(entry.get("avatar_path") or entry.get("avatar"))
+    avatar_enabled_setting = entry.get("avatar_enabled")
+    avatar_enabled = bool(avatar_enabled_setting) if avatar_enabled_setting is not None else bool(avatar_path)
 
     return ChannelConfig(
         name=name,
