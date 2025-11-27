@@ -160,7 +160,7 @@ def _collect_transcripts(audio_paths: Sequence[Path]) -> list[dict]:
 def _find_timestamp(identifier: str, transcript_words: Sequence[dict]) -> Optional[float]:
     tokens = [
         normalized
-        for token in identifier.split()
+        for token in re.split(r"[\s-]+", identifier)
         if token.strip()
         for normalized in [_normalize_word(token)]
         if normalized
