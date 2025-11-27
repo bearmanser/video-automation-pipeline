@@ -69,6 +69,19 @@ def main() -> None:
     progress["channel_name"] = channel_config.name
     _save_progress(progress)
 
+    static_image_path = channel_config.resolved_still_image_path
+    static_image_paths: list[str] | None = None
+    static_thumbnail_path: Path | None = None
+    if static_image_path:
+        if not static_image_path.exists():
+            raise SystemExit(f"Static image not found: {static_image_path}")
+        static_image_paths = [str(static_image_path)]
+        static_thumbnail_path = static_image_path
+        progress["image_paths"] = static_image_paths
+        progress["thumbnail_path"] = str(static_thumbnail_path)
+        progress["short_video_path"] = None
+        _save_progress(progress)
+
     script_path_str = progress.get("script_path")
     video_id = progress.get("video_id")
     script_path = Path(script_path_str) if script_path_str else None
@@ -119,7 +132,10 @@ def main() -> None:
         print(f"Using existing media plan at {media_plan_path}")
 
     image_paths = progress.get("image_paths")
-    if not _paths_exist(image_paths):
+    if static_image_paths:
+        image_paths = static_image_paths
+        print("Using static image from config; skipping image generation")
+    elif not _paths_exist(image_paths):
         image_paths = generate_images(
             media_plan_path,
             style_guidance=channel_config.image_style_guidance,
@@ -133,19 +149,23 @@ def main() -> None:
         image_paths = [str(path) for path in image_paths]
         print("Using existing images")
 
-    short_video_path_str = progress.get("short_video_path")
-    short_video_path = Path(short_video_path_str) if short_video_path_str else None
-    if not short_video_path or not short_video_path.exists():
-        short_video_path = generate_short_video(
-            media_plan_path,
-            style_guidance=channel_config.short_video_style_guidance,
-            channel_name=channel_config.name,
-        )
-        progress["short_video_path"] = str(short_video_path)
-        _save_progress(progress)
-        print(f"Short video saved to {short_video_path}")
+    short_video_path: Path | None = None
+    if static_image_paths:
+        print("Using static image from config; skipping short video generation")
     else:
-        print(f"Using existing short video at {short_video_path}")
+        short_video_path_str = progress.get("short_video_path")
+        short_video_path = Path(short_video_path_str) if short_video_path_str else None
+        if not short_video_path or not short_video_path.exists():
+            short_video_path = generate_short_video(
+                media_plan_path,
+                style_guidance=channel_config.short_video_style_guidance,
+                channel_name=channel_config.name,
+            )
+            progress["short_video_path"] = str(short_video_path)
+            _save_progress(progress)
+            print(f"Short video saved to {short_video_path}")
+        else:
+            print(f"Using existing short video at {short_video_path}")
 
     video_path_str = progress.get("video_path")
     video_path = Path(video_path_str) if video_path_str else None
@@ -169,7 +189,10 @@ def main() -> None:
 
     thumbnail_path_str = progress.get("thumbnail_path")
     thumbnail_path = Path(thumbnail_path_str) if thumbnail_path_str else None
-    if not thumbnail_path or not thumbnail_path.exists():
+    if static_thumbnail_path:
+        thumbnail_path = static_thumbnail_path
+        print("Using static image from config; skipping thumbnail generation")
+    elif not thumbnail_path or not thumbnail_path.exists():
         thumbnail_path = generate_thumbnail(
             media_plan_path, channel_name=channel_config.name
         )

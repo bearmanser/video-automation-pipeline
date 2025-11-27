@@ -37,12 +37,17 @@ class ChannelConfig:
     voice_emotion: str = DEFAULT_VOICE_EMOTION
     bg_music: str = DEFAULT_BG_MUSIC
     token_path: str | None = None
+    still_image_path: str | None = None
 
     @property
     def resolved_token_path(self) -> Path:
         path = Path(self.token_path) if self.token_path else Path("channel") / self.name / "token.json"
         path.parent.mkdir(parents=True, exist_ok=True)
         return path
+
+    @property
+    def resolved_still_image_path(self) -> Path | None:
+        return Path(self.still_image_path) if self.still_image_path else None
 
 
 class ChannelConfigError(Exception):
@@ -78,6 +83,7 @@ def _build_channel(entry: dict) -> ChannelConfig:
         or DEFAULT_VOICE_EMOTION,
         bg_music=_coerce_string(entry.get("bg_music")) or DEFAULT_BG_MUSIC,
         token_path=_coerce_string(entry.get("token_path")),
+        still_image_path=_coerce_string(entry.get("still_image_path")),
     )
 
 

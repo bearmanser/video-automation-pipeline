@@ -28,7 +28,8 @@
       "avatar_enabled": false,
       "voice_id": "English_Whispering_girl_v3",
       "voice_emotion": "auto",
-      "bg_music": "assets/music/fall-of-the-roman-empire-background-epic-music-for-video-200221.mp3"
+      "bg_music": "assets/music/fall-of-the-roman-empire-background-epic-music-for-video-200221.mp3",
+      "still_image_path": "assets/images/image.jpg"
     }
   ]
 }
