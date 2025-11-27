@@ -36,9 +36,9 @@ def _load_media_plan(media_plan_path: Path) -> dict:
     return payload
 
 
-def _prepare_output_path(video_title: str, video_id: str) -> Path:
+def _prepare_output_path(video_title: str, video_id: str, channel_name: str) -> Path:
     safe_title = _slugify(video_title)
-    output_dir = Path("channel") / f"{safe_title}-{video_id}" / "metadata"
+    output_dir = Path("channel") / channel_name / f"{safe_title}-{video_id}" / "metadata"
     output_dir.mkdir(parents=True, exist_ok=True)
     return output_dir / "metadata.json"
 
@@ -73,6 +73,7 @@ def generate_metadata(
     video_title: str,
     media_plan_path: Path | str,
     video_id: Optional[str] = None,
+    channel_name: str = "default",
 ) -> Path:
     """Generate and save upload-ready metadata for YouTube."""
 
@@ -80,6 +81,7 @@ def generate_metadata(
     payload = _load_media_plan(path)
 
     resolved_video_id = video_id or str(payload.get("video_id", ""))
+    channel = str(payload.get("channel_name") or channel_name or "default")
     if not resolved_video_id:
         raise ValueError("Video ID is required to generate metadata")
 
@@ -96,10 +98,11 @@ def generate_metadata(
     except json.JSONDecodeError as exc:
         raise ValueError("Metadata response was not valid JSON") from exc
 
-    output_path = _prepare_output_path(video_title, resolved_video_id)
+    output_path = _prepare_output_path(video_title, resolved_video_id, channel)
     payload = {
         "video_title": video_title,
         "video_id": resolved_video_id,
+        "channel_name": channel,
         "format": METADATA_FORMAT_VERSION,
         "metadata": metadata,
     }

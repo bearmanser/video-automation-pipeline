@@ -27,7 +27,7 @@ def _collect_response_chunks(chunks: Iterable[str]) -> str:
 
 
 def _build_prompt(
-    video_title: str, video_id: str, topic: Optional[str], word_length: Optional[int]
+    video_title: str, video_id: str, word_length: Optional[int]
 ) -> str:
     script_format = f"""
 VIDEO_TITLE: {video_title}
@@ -52,7 +52,6 @@ FORMAT: {SCRIPT_FORMAT_VERSION}
 - a brief takeaway and call to action.
 """
 
-    topic_context = topic.strip() if topic else "a compelling YouTube topic"
     word_count_guidance = (
         f" Keep the overall length close to {word_length} words." if word_length else ""
     )
@@ -63,7 +62,7 @@ FORMAT: {SCRIPT_FORMAT_VERSION}
         "Avoid describing specific visuals or camera directions because another module handles them. "
         "Keep each scene focused on the spoken story only—no extra labels or visual instructions. "
         f"Aim for a compact script that can be delivered quickly.{word_count_guidance} "
-        f"The script should focus on {topic_context}.\n\n"
+        f"The script should focus on {video_title}.\n\n"
         "Return only the script using the template. Do not include commentary.\n\n"
         f"Template:\n{script_format}"
     )
@@ -99,9 +98,11 @@ def _validate_script(script: str, video_title: str, video_id: str) -> None:
         raise ValueError("Invalid script generated: " + " ".join(errors))
 
 
-def _save_script(video_title: str, video_id: str, content: str) -> Path:
+def _save_script(
+    video_title: str, video_id: str, content: str, channel_name: str
+) -> Path:
     safe_title = _slugify(video_title)
-    base_dir = Path("channel") / f"{safe_title}-{video_id}" / "scripts"
+    base_dir = Path("channel") / channel_name / f"{safe_title}-{video_id}" / "scripts"
     base_dir.mkdir(parents=True, exist_ok=True)
     file_path = base_dir / f"script-{SCRIPT_FORMAT_VERSION.lower()}.txt"
     file_path.write_text(content, encoding="utf-8")
@@ -115,11 +116,10 @@ def _generate_video_id() -> str:
 def generate_script(
     video_title: str,
     video_id: Optional[str] = None,
-    topic: Optional[str] = None,
     word_length: Optional[int] = None,
 ) -> str:
     resolved_video_id = video_id or _generate_video_id()
-    prompt = _build_prompt(video_title, resolved_video_id, topic, word_length)
+    prompt = _build_prompt(video_title, resolved_video_id, word_length)
     response = replicate.run(MODEL_NAME, input={"prompt": prompt})
     script = _collect_response_chunks(response)
     _validate_script(script, video_title, resolved_video_id)
@@ -129,12 +129,12 @@ def generate_script(
 def generate_and_save_script(
     video_title: str,
     video_id: Optional[str] = None,
-    topic: Optional[str] = None,
     word_length: Optional[int] = None,
+    channel_name: str = "default",
 ) -> tuple[Path, str]:
     resolved_video_id = video_id or _generate_video_id()
-    script = generate_script(video_title, resolved_video_id, topic, word_length)
-    script_path = _save_script(video_title, resolved_video_id, script)
+    script = generate_script(video_title, resolved_video_id, word_length)
+    script_path = _save_script(video_title, resolved_video_id, script, channel_name)
     return script_path, resolved_video_id
 
 

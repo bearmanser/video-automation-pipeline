@@ -202,14 +202,17 @@ def _attach_timestamps(plan: list[dict], transcript_words: Sequence[dict]) -> li
     return enriched
 
 
-def _save_plan(video_title: str, video_id: str, plan: list[dict]) -> Path:
+def _save_plan(
+    video_title: str, video_id: str, plan: list[dict], channel_name: str
+) -> Path:
     safe_title = _slugify(video_title)
-    base_dir = Path("channel") / f"{safe_title}-{video_id}" / "media-plans"
+    base_dir = Path("channel") / channel_name / f"{safe_title}-{video_id}" / "media-plans"
     base_dir.mkdir(parents=True, exist_ok=True)
     output_path = base_dir / "media-plan.json"
     payload = {
         "video_title": video_title,
         "video_id": video_id,
+        "channel_name": channel_name,
         "format": PLAN_FORMAT_VERSION,
         "entries": plan,
     }
@@ -223,6 +226,7 @@ def generate_media_plan(
     audio_paths: Sequence[Path],
     video_title: str,
     video_id: Optional[str] = None,
+    channel_name: str = "default",
 ) -> tuple[Path, list[dict]]:
     """Generate and save a media plan mapping image prompts to timestamps."""
 
@@ -230,7 +234,7 @@ def generate_media_plan(
     plan = _request_plan(script)
     transcript_words = _collect_transcripts(audio_paths)
     enriched_plan = _attach_timestamps(plan, transcript_words)
-    output_path = _save_plan(video_title, resolved_video_id, enriched_plan)
+    output_path = _save_plan(video_title, resolved_video_id, enriched_plan, channel_name)
     return output_path, enriched_plan
 
 

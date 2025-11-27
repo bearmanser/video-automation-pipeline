@@ -26,9 +26,9 @@ def _generate_video_id() -> str:
     return uuid.uuid4().hex[:8]
 
 
-def _prepare_output_dir(video_title: str, video_id: str) -> Path:
+def _prepare_output_dir(video_title: str, video_id: str, channel_name: str) -> Path:
     safe_title = _slugify(video_title)
-    output_dir = Path("channel") / f"{safe_title}-{video_id}" / "audios"
+    output_dir = Path("channel") / channel_name / f"{safe_title}-{video_id}" / "audios"
     output_dir.mkdir(parents=True, exist_ok=True)
     return output_dir
 
@@ -104,6 +104,7 @@ def generate_voiceover(
     language_boost: str = "English",
     subtitle_enable: bool = False,
     english_normalization: bool = True,
+    channel_name: str = "default",
 ) -> list[Path]:
     """Generate a voiceover for each section of the provided script.
 
@@ -111,7 +112,7 @@ def generate_voiceover(
     """
 
     resolved_video_id = video_id or _generate_video_id()
-    output_dir = _prepare_output_dir(video_title, resolved_video_id)
+    output_dir = _prepare_output_dir(video_title, resolved_video_id, channel_name)
     sections = _collect_sections(script)
 
     audio_paths: list[Path] = []
