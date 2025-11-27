@@ -89,6 +89,7 @@ def main() -> None:
             video_title=video_title,
             video_id=video_id,
             voice_id=channel_config.voice_id,
+            emotion=channel_config.voice_emotion,
             channel_name=channel_config.name,
         )
         progress["audio_paths"] = [str(path) for path in audio_paths]

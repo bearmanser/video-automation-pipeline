@@ -18,6 +18,7 @@ DEFAULT_SHORT_VIDEO_STYLE_GUIDANCE = (
     "motion pacing"
 )
 DEFAULT_VOICE_ID = "Wise_Woman"
+DEFAULT_VOICE_EMOTION = "happy"
 DEFAULT_BG_MUSIC = "assets/music/bg.mp3"
 
 CONFIG_PATH = Path("channels.json")
@@ -33,6 +34,7 @@ class ChannelConfig:
     avatar_path: str | None = None
     avatar_enabled: bool = False
     voice_id: str = DEFAULT_VOICE_ID
+    voice_emotion: str = DEFAULT_VOICE_EMOTION
     bg_music: str = DEFAULT_BG_MUSIC
     token_path: str | None = None
 
@@ -72,6 +74,8 @@ def _build_channel(entry: dict) -> ChannelConfig:
         avatar_path=avatar_path,
         avatar_enabled=avatar_enabled,
         voice_id=_coerce_string(entry.get("voice_id")) or DEFAULT_VOICE_ID,
+        voice_emotion=_coerce_string(entry.get("voice_emotion"))
+        or DEFAULT_VOICE_EMOTION,
         bg_music=_coerce_string(entry.get("bg_music")) or DEFAULT_BG_MUSIC,
         token_path=_coerce_string(entry.get("token_path")),
     )
@@ -104,6 +108,7 @@ __all__ = [
     "ChannelConfigError",
     "DEFAULT_IMAGE_STYLE_GUIDANCE",
     "DEFAULT_SHORT_VIDEO_STYLE_GUIDANCE",
+    "DEFAULT_VOICE_EMOTION",
     "get_channel_config",
     "load_channels",
 ]
