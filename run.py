@@ -1,6 +1,10 @@
-"""Pipeline entrypoint that triggers script generation."""
+"""Pipeline entrypoint that orchestrates the content pipeline."""
 
 from __future__ import annotations
+
+import json
+from pathlib import Path
+from typing import Any, Dict, List
 
 from dotenv import load_dotenv
 
@@ -16,56 +20,136 @@ from modules.voice_generator.generate import generate_voiceover
 
 load_dotenv()
 
+PROGRESS_FILE = Path("pipeline_progress.json")
+
+
+def _load_progress() -> Dict[str, Any]:
+    if PROGRESS_FILE.exists():
+        try:
+            return json.loads(PROGRESS_FILE.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            return {}
+    return {}
+
+
+def _save_progress(progress: Dict[str, Any]) -> None:
+    PROGRESS_FILE.write_text(json.dumps(progress, indent=2), encoding="utf-8")
+
+
+def _paths_exist(paths: List[str] | None) -> bool:
+    return bool(paths) and all(Path(path).exists() for path in paths)
+
 
 def main() -> None:
     video_title = "Top in-demand skills that boost earning potential"
     topic = video_title
+    progress = _load_progress()
+    video_title = progress.get("video_title", video_title)
+    progress["video_title"] = video_title
 
-    script_path, video_id = generate_and_save_script(
-        video_title, topic=topic, word_length=1000
-    )
-    print(f"Script saved to {script_path}")
+    script_path_str = progress.get("script_path")
+    video_id = progress.get("video_id")
+    script_path = Path(script_path_str) if script_path_str else None
+    if not script_path or not script_path.exists() or not video_id:
+        script_path, video_id = generate_and_save_script(
+            video_title, topic=topic, word_length=1000
+        )
+        progress.update({"script_path": str(script_path), "video_id": video_id})
+        _save_progress(progress)
+        print(f"Script saved to {script_path}")
+    else:
+        print(f"Using existing script at {script_path}")
 
-    script_text = script_path.read_text(encoding="utf-8")
-    audio_paths = generate_voiceover(
-        script=script_text, video_title=video_title, video_id=video_id
-    )
-    for path in audio_paths:
-        print(f"Voiceover saved to {path}")
+    script_text = Path(progress["script_path"]).read_text(encoding="utf-8")
 
-    media_plan_path, _ = generate_media_plan(
-        script=script_text,
-        audio_paths=audio_paths,
-        video_title=video_title,
-        video_id=video_id,
-    )
-    print(f"Media plan saved to {media_plan_path}")
+    audio_paths = progress.get("audio_paths")
+    if not _paths_exist(audio_paths):
+        audio_paths = generate_voiceover(
+            script=script_text, video_title=video_title, video_id=video_id
+        )
+        progress["audio_paths"] = [str(path) for path in audio_paths]
+        _save_progress(progress)
+        for path in audio_paths:
+            print(f"Voiceover saved to {path}")
+    else:
+        audio_paths = [str(path) for path in audio_paths]
+        print("Using existing voiceover files")
 
-    image_paths = generate_images(media_plan_path)
-    for path in image_paths:
-        print(f"Image saved to {path}")
+    media_plan_path_str = progress.get("media_plan_path")
+    media_plan_path = Path(media_plan_path_str) if media_plan_path_str else None
+    if not media_plan_path or not media_plan_path.exists():
+        media_plan_path, _ = generate_media_plan(
+            script=script_text,
+            audio_paths=audio_paths,
+            video_title=video_title,
+            video_id=video_id,
+        )
+        progress["media_plan_path"] = str(media_plan_path)
+        _save_progress(progress)
+        print(f"Media plan saved to {media_plan_path}")
+    else:
+        print(f"Using existing media plan at {media_plan_path}")
 
-    short_video_path = generate_short_video(media_plan_path)
-    print(f"Short video saved to {short_video_path}")
+    image_paths = progress.get("image_paths")
+    if not _paths_exist(image_paths):
+        image_paths = generate_images(media_plan_path)
+        progress["image_paths"] = [str(path) for path in image_paths]
+        _save_progress(progress)
+        for path in image_paths:
+            print(f"Image saved to {path}")
+    else:
+        image_paths = [str(path) for path in image_paths]
+        print("Using existing images")
 
-    video_path = compose_video(
-        audio_paths=audio_paths,
-        image_paths=image_paths,
-        short_video_path=short_video_path,
-        video_title=video_title,
-        video_id=video_id,
-    )
-    print(f"Video saved to {video_path}")
+    short_video_path_str = progress.get("short_video_path")
+    short_video_path = Path(short_video_path_str) if short_video_path_str else None
+    if not short_video_path or not short_video_path.exists():
+        short_video_path = generate_short_video(media_plan_path)
+        progress["short_video_path"] = str(short_video_path)
+        _save_progress(progress)
+        print(f"Short video saved to {short_video_path}")
+    else:
+        print(f"Using existing short video at {short_video_path}")
 
-    thumbnail_path = generate_thumbnail(media_plan_path)
-    print(f"Thumbnail saved to {thumbnail_path}")
+    video_path_str = progress.get("video_path")
+    video_path = Path(video_path_str) if video_path_str else None
+    if not video_path or not video_path.exists():
+        video_path = compose_video(
+            audio_paths=audio_paths,
+            image_paths=image_paths,
+            short_video_path=short_video_path,
+            video_title=video_title,
+            video_id=video_id,
+        )
+        progress["video_path"] = str(video_path)
+        _save_progress(progress)
+        print(f"Video saved to {video_path}")
+    else:
+        print(f"Using existing composed video at {video_path}")
 
-    metadata_path = generate_metadata(
-        video_title=video_title,
-        media_plan_path=media_plan_path,
-        video_id=video_id,
-    )
-    print(f"Metadata saved to {metadata_path}")
+    thumbnail_path_str = progress.get("thumbnail_path")
+    thumbnail_path = Path(thumbnail_path_str) if thumbnail_path_str else None
+    if not thumbnail_path or not thumbnail_path.exists():
+        thumbnail_path = generate_thumbnail(media_plan_path)
+        progress["thumbnail_path"] = str(thumbnail_path)
+        _save_progress(progress)
+        print(f"Thumbnail saved to {thumbnail_path}")
+    else:
+        print(f"Using existing thumbnail at {thumbnail_path}")
+
+    metadata_path_str = progress.get("metadata_path")
+    metadata_path = Path(metadata_path_str) if metadata_path_str else None
+    if not metadata_path or not metadata_path.exists():
+        metadata_path = generate_metadata(
+            video_title=video_title,
+            media_plan_path=media_plan_path,
+            video_id=video_id,
+        )
+        progress["metadata_path"] = str(metadata_path)
+        _save_progress(progress)
+        print(f"Metadata saved to {metadata_path}")
+    else:
+        print(f"Using existing metadata at {metadata_path}")
 
     upload_response = upload_video(
         video_path=video_path,

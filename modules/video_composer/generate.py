@@ -4,14 +4,13 @@ from __future__ import annotations
 
 from itertools import zip_longest
 from pathlib import Path
-from typing import Iterable, List, Sequence, Tuple
+from typing import Iterable, List, Optional, Sequence, Tuple
 
 import numpy as np
 from moviepy.audio.fx.all import audio_loop
 from moviepy.editor import (
     AudioFileClip,
     CompositeAudioClip,
-    CompositeVideoClip,
     ImageClip,
     VideoClip,
     VideoFileClip,
@@ -28,7 +27,6 @@ DEFAULT_FPS = 30
 DEFAULT_CODEC = "libx264"
 DEFAULT_AUDIO_CODEC = "aac"
 DEFAULT_TRANSITION_DURATION = 0.6
-DEFAULT_ZOOM_FACTOR = 1
 AVATAR_DIR = Path("assets/avatar")
 BG_MUSIC = "assets/music/bg.mp3"
 CASUAL_AVATAR_SEQUENCE = [
@@ -50,20 +48,7 @@ def _slugify(value: str) -> str:
     return collapsed or "video"
 
 
-def _apply_subtle_motion(clip: ImageClip, zoom_factor: float) -> ImageClip:
-    if zoom_factor <= 1 or not clip.duration:
-        return clip
-
-    duration = clip.duration
-
-    def _resize_factor(t: float) -> float:
-        progress = 0.0 if duration <= 0 else min(max(t / duration, 0.0), 1.0)
-        return 1 + (zoom_factor - 1) * progress
-
-    return clip.resize(_resize_factor)
-
-
-def _apply_transitions(clip: ImageClip, transition_duration: float) -> ImageClip:
+def _apply_transitions(clip: VideoClip, transition_duration: float) -> VideoClip:
     if transition_duration <= 0:
         return clip
 
@@ -107,54 +92,94 @@ def _select_avatar_asset(section_name: str, section_index: int) -> Path:
     return _resolve_avatar_path(preferred)
 
 
-def _scale_avatar(avatar_clip: ImageClip, base_size: Tuple[int, int]) -> ImageClip:
+def _scale_avatar_image(
+    avatar_image: Image.Image, base_size: Tuple[int, int]
+) -> Image.Image:
     base_width, base_height = base_size
     if not base_width or not base_height:
-        return avatar_clip
+        return avatar_image
 
     max_width = base_width * 0.28
     max_height = base_height * 0.8
-    width_factor = max_width / avatar_clip.w if avatar_clip.w else 1
-    height_factor = max_height / avatar_clip.h if avatar_clip.h else 1
+    width_factor = max_width / avatar_image.width if avatar_image.width else 1
+    height_factor = max_height / avatar_image.height if avatar_image.height else 1
     scale_factor = min(width_factor, height_factor, 1)
 
-    return avatar_clip.resize(scale_factor)
+    new_size = (
+        max(1, int(avatar_image.width * scale_factor)),
+        max(1, int(avatar_image.height * scale_factor)),
+    )
+    return avatar_image.resize(new_size, Image.ANTIALIAS)
 
 
-def _position_avatar(
-    avatar_clip: ImageClip, base_size: Tuple[int, int], side: str
-) -> Tuple[float, float]:
+def _position_avatar_image(
+    avatar_size: Tuple[int, int], base_size: Tuple[int, int], side: str
+) -> Tuple[int, int]:
     base_width, base_height = base_size
-    margin_x = base_width * 0.04
-    margin_y = base_height * 0.05
+    avatar_width, avatar_height = avatar_size
+    margin_x = int(base_width * 0.04)
+    margin_y = int(base_height * 0.05)
 
-    x = margin_x if side == "left" else base_width - avatar_clip.w - margin_x
-    y = base_height - avatar_clip.h - margin_y
+    x = margin_x if side == "left" else base_width - avatar_width - margin_x
+    y = base_height - avatar_height - margin_y
     return x, y
 
 
-def _load_avatar_image(path: Path, mirror: bool) -> np.ndarray:
-    with Image.open(path).convert("RGBA") as img:
-        if mirror:
-            img = ImageOps.mirror(img)
-        return np.array(img)
+def _render_frame_with_avatar(
+    *,
+    image_path: Path,
+    base_resolution: Tuple[int, int] | None,
+    section_name: str,
+    section_index: int,
+) -> np.ndarray:
+    avatar_path = _select_avatar_asset(section_name, section_index)
+    side = _avatar_side_for_index(section_index)
+
+    with Image.open(image_path).convert("RGBA") as base_image:
+        if base_resolution:
+            base_image = base_image.resize(base_resolution, Image.ANTIALIAS)
+
+        with Image.open(avatar_path).convert("RGBA") as avatar_image:
+            if side == "left":
+                avatar_image = ImageOps.mirror(avatar_image)
+
+            avatar_image = _scale_avatar_image(avatar_image, base_image.size)
+            position = _position_avatar_image(
+                avatar_image.size, base_image.size, side
+            )
+
+            base_image.paste(avatar_image, position, avatar_image)
+
+        return np.array(base_image.convert("RGB"))
 
 
-def _build_avatar_clip(
+def _build_avatar_overlay(
     *,
     section_name: str,
     section_index: int,
     duration: float,
     base_size: Tuple[int, int],
-) -> ImageClip:
+) -> Optional[ImageClip]:
+    base_width, base_height = int(base_size[0] or 0), int(base_size[1] or 0)
+    if not base_width or not base_height:
+        return None
+
     avatar_path = _select_avatar_asset(section_name, section_index)
     side = _avatar_side_for_index(section_index)
-    avatar_image = _load_avatar_image(avatar_path, mirror=side == "left")
-    avatar_clip = ImageClip(avatar_image).set_duration(duration)
 
-    avatar_clip = _scale_avatar(avatar_clip, base_size)
-    position = _position_avatar(avatar_clip, base_size, side)
-    return avatar_clip.set_position(position)
+    with Image.open(avatar_path).convert("RGBA") as avatar_image:
+        if side == "left":
+            avatar_image = ImageOps.mirror(avatar_image)
+
+        avatar_image = _scale_avatar_image(avatar_image, base_size)
+        position = _position_avatar_image(avatar_image.size, base_size, side)
+        avatar_array = np.array(avatar_image)
+
+    return (
+        ImageClip(avatar_array)
+        .set_duration(duration)
+        .set_position(position)
+    )
 
 
 def _ensure_paths(paths: Sequence[Path | str], label: str) -> List[Path]:
@@ -221,14 +246,14 @@ def compose_video(
     audio_codec: str = DEFAULT_AUDIO_CODEC,
     resolution: Tuple[int, int] | None = None,
     transition_duration: float = DEFAULT_TRANSITION_DURATION,
-    zoom_factor: float = DEFAULT_ZOOM_FACTOR,
     short_video_index: int = 1,
 ) -> Path:
     """Compose the final video by pairing audio clips with generated images.
 
-    The composer adds a subtle Ken Burns-style zoom plus fade-in/fade-out
-    transitions so each scene change feels smooth and highlights important beats.
-    Control these effects with ``transition_duration`` and ``zoom_factor``.
+    Static visuals are precomposited with the avatar using Pillow before being
+    passed to MoviePy to avoid frame-by-frame compositing and resizing. The
+    composer adds fade-in/fade-out transitions so each scene change feels smooth
+    and highlights important beats.
 
     If a ``resolution`` is not provided, the composer will infer a base resolution
     from the short video (when available) or the first generated image so every
@@ -266,6 +291,7 @@ def compose_video(
             _pair_media(resolved_audio_paths, resolved_image_paths)
         ):
             audio_clip = AudioFileClip(str(audio_path))
+            section_name = _extract_section_name(audio_path)
             use_short_video = (
                 short_video_clip is not None and index == short_video_index
             )
@@ -277,13 +303,27 @@ def compose_video(
                     visual_clip = visual_clip.subclip(0, target_duration)
                 if base_resolution:
                     visual_clip = visual_clip.resize(newsize=base_resolution)
+
+                avatar_clip = _build_avatar_overlay(
+                    section_name=section_name,
+                    section_index=index,
+                    duration=audio_clip.duration or visual_clip.duration or 0,
+                    base_size=visual_clip.size,
+                )
+                if avatar_clip is not None:
+                    visual_clip = CompositeVideoClip(
+                        [visual_clip, avatar_clip], size=visual_clip.size
+                    )
             else:
-                image_clip = ImageClip(str(image_path)).set_duration(
+                composited_frame = _render_frame_with_avatar(
+                    image_path=image_path,
+                    base_resolution=base_resolution,
+                    section_name=section_name,
+                    section_index=index,
+                )
+                visual_clip = ImageClip(composited_frame).set_duration(
                     audio_clip.duration
                 )
-                if base_resolution:
-                    image_clip = image_clip.resize(newsize=base_resolution)
-                visual_clip = _apply_subtle_motion(image_clip, zoom_factor)
 
             visual_clip = visual_clip.set_audio(audio_clip)
 
@@ -293,20 +333,8 @@ def compose_video(
                 else 0
             )
 
-            section_name = _extract_section_name(audio_path)
-            avatar_clip = _build_avatar_clip(
-                section_name=section_name,
-                section_index=index,
-                duration=audio_clip.duration or 0,
-                base_size=visual_clip.size,
-            )
-
-            composite_clip = CompositeVideoClip(
-                [visual_clip, avatar_clip], size=visual_clip.size
-            ).set_audio(audio_clip)
-
-            composite_clip = _apply_transitions(composite_clip, effective_transition)
-            clip_pairs.append((composite_clip, audio_clip))
+            visual_clip = _apply_transitions(visual_clip, effective_transition)
+            clip_pairs.append((visual_clip, audio_clip))
 
         if not clip_pairs:
             raise ValueError("Unable to create any video segments")
