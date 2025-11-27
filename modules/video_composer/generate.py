@@ -23,11 +23,14 @@ from PIL import Image, ImageOps
 if not hasattr(Image, "ANTIALIAS"):
     Image.ANTIALIAS = Image.Resampling.LANCZOS  # type: ignore[attr-defined, assignment]
 
+from modules.config import resolve_channel
+
 DEFAULT_VIDEO_FILENAME = "final_video.mp4"
 DEFAULT_FPS = 30
 DEFAULT_CODEC = "libx264"
 DEFAULT_AUDIO_CODEC = "aac"
 DEFAULT_TRANSITION_DURATION = 0.6
+DEFAULT_END_CARD_DURATION = 5.0
 BG_MUSIC = "assets/music/bg.mp3"
 CASUAL_AVATAR_FILENAMES = ["casual_1.png", "casual_2.png", "casual_3.png"]
 AVATAR_PRIORITY_FILENAMES = {
@@ -243,11 +246,12 @@ def compose_video(
     audio_codec: str = DEFAULT_AUDIO_CODEC,
     resolution: Tuple[int, int] | None = None,
     transition_duration: float = DEFAULT_TRANSITION_DURATION,
+    end_card_duration: float = DEFAULT_END_CARD_DURATION,
     short_video_index: int = 1,
     avatar_path: Path | str | None = None,
     avatar_enabled: bool = True,
     bg_music_path: Path | str | None = None,
-    channel_name: str = "default",
+    channel_name: Optional[str] = None,
 ) -> Path:
     """Compose the final video by pairing audio clips with generated images.
 
@@ -263,12 +267,13 @@ def compose_video(
 
     resolved_audio_paths = _ensure_paths(audio_paths, "audio")
     resolved_image_paths = _ensure_paths(image_paths, "image")
+    channel = resolve_channel(None, channel_name).name
     resolved_short_video = Path(short_video_path) if short_video_path else None
     if resolved_short_video and not resolved_short_video.exists():
         raise FileNotFoundError(
             f"Missing short video file: {resolved_short_video}"  # pragma: no cover
         )
-    output_dir = _prepare_output_dir(video_title, video_id, channel_name)
+    output_dir = _prepare_output_dir(video_title, video_id, channel)
     output_path = output_dir / DEFAULT_VIDEO_FILENAME
 
     base_resolution = _determine_base_resolution(
@@ -280,6 +285,7 @@ def compose_video(
     clip_pairs: List[Tuple[VideoClip, AudioFileClip]] = []
     short_video_clip: VideoFileClip | None = None
     final_clip: VideoClip | None = None
+    tail_clip: ImageClip | None = None
     bg_music_base: AudioFileClip | None = None
     bg_music: AudioFileClip | None = None
     composite_audio: CompositeAudioClip | None = None
@@ -353,6 +359,15 @@ def compose_video(
             [clip for clip, _ in clip_pairs], method="compose"
         )
 
+        if end_card_duration > 0 and final_clip.duration:
+            tail_frame_time = max(final_clip.duration - 1 / fps, 0)
+            tail_clip = final_clip.to_ImageClip(t=tail_frame_time).set_duration(
+                end_card_duration
+            )
+            final_clip = concatenate_videoclips(
+                [final_clip, tail_clip], method="compose"
+            )
+
         bg_source = Path(bg_music_path) if bg_music_path else Path(BG_MUSIC)
         bg_music_base = AudioFileClip(str(bg_source))
         target_duration = final_clip.duration or bg_music_base.duration or 0
@@ -386,6 +401,11 @@ def compose_video(
         if final_clip is not None:
             try:
                 final_clip.close()
+            except Exception:
+                pass
+        if tail_clip is not None:
+            try:
+                tail_clip.close()
             except Exception:
                 pass
         if composite_audio is not None:

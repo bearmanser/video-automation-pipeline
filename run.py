@@ -47,8 +47,10 @@ def _paths_exist(paths: List[str] | None) -> bool:
 
 
 def main() -> None:
-    video_title = "Why Zeus Became King of the Gods"
-    channel_name = "AgeofAntiquity"
+    video_title = (
+        "Your Girlfriend Tells You Why She Loves You | Audio Roleplay [F4M] [Sleep-Aid]"
+    )
+    channel_name = "BunnyEarAudios"
 
     try:
         channel_config = get_channel_config(channel_name)
@@ -72,7 +74,7 @@ def main() -> None:
     script_path = Path(script_path_str) if script_path_str else None
     if not script_path or not script_path.exists() or not video_id:
         script_path, video_id = generate_and_save_script(
-            video_title, word_length=500, channel_name=channel_config.name
+            video_title, word_length=750, channel_name=channel_config.name
         )
         progress.update({"script_path": str(script_path), "video_id": video_id})
         _save_progress(progress)

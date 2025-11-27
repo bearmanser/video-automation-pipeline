@@ -1,8 +1,8 @@
 """Thumbnail creation module using Google's Imagen model.
 
 This implementation uses the google/imagen-4-fast model via Replicate and builds
-the prompt directly from the video title with dedicated YouTube thumbnail style
-guidance.
+the prompt from the video title plus key visual cues pulled from the media plan,
+with dedicated YouTube thumbnail style guidance.
 """
 
 from __future__ import annotations
@@ -11,9 +11,11 @@ import json
 import re
 import urllib.request
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any, Iterable, Optional
 
 import replicate
+
+from modules.config import resolve_channel
 
 MODEL_NAME = "google/imagen-4-fast"
 DEFAULT_ASPECT_RATIO = "16:9"
@@ -51,12 +53,28 @@ def _prepare_output_dir(video_title: str, video_id: str, channel_name: str) -> P
     return output_dir
 
 
-def _build_prompt(video_title: str) -> str:
-    core_prompt = (
-        f"Eye-catching YouTube thumbnail about: {video_title}. Include a clear focal "
-        f"subject and composition that quickly communicates the topic."
-    )
-    return f"{core_prompt}\n\n{STYLE_GUIDANCE}"
+def _build_prompt(video_title: str, entries: list[dict] | None = None) -> str:
+    lines: list[str] = [
+        "Design an eye-catching YouTube thumbnail that instantly conveys the topic.",
+        f"Video title: {video_title}.",
+    ]
+
+    cues: list[str] = []
+    for entry in entries or []:
+        image_prompt = str(entry.get("image_prompt", "")).strip()
+        identifier = str(entry.get("identifier", "")).strip()
+        if image_prompt:
+            cues.append(f"{identifier + ': ' if identifier else ''}{image_prompt}")
+        if len(cues) >= 3:
+            break
+
+    if cues:
+        lines.append("Incorporate these visual cues from the media plan:")
+        lines.extend(f"- {cue}" for cue in cues)
+
+    lines.append("Keep clear negative space for title text placement.")
+    lines.append(STYLE_GUIDANCE)
+    return "\n".join(lines)
 
 
 def _run_thumbnail_model(prompt: str):
@@ -105,7 +123,9 @@ def _persist_thumbnail(output_obj: Any, output_path: Path) -> Path:
     return output_path
 
 
-def generate_thumbnail(media_plan_path: Path | str, *, channel_name: str = "default") -> Path:
+def generate_thumbnail(
+    media_plan_path: Path | str, *, channel_name: Optional[str] = None
+) -> Path:
     """Generate a single thumbnail image based on the video title."""
 
     path = Path(media_plan_path)
@@ -113,11 +133,13 @@ def generate_thumbnail(media_plan_path: Path | str, *, channel_name: str = "defa
 
     video_title = str(payload.get("video_title", "video")).strip()
     video_id = str(payload.get("video_id", "")).strip()
-    channel = str(payload.get("channel_name") or channel_name or "default")
+    channel = resolve_channel(payload.get("channel_name"), channel_name).name
     if not video_id:
         raise ValueError("Media plan missing 'video_id'")
 
-    prompt = _build_prompt(video_title or "YouTube video")
+    entries = payload.get("entries") if isinstance(payload.get("entries"), list) else []
+
+    prompt = _build_prompt(video_title or "YouTube video", entries)
     output_dir = _prepare_output_dir(video_title or "video", video_id, channel)
     output_path = output_dir / THUMBNAIL_FILENAME
 

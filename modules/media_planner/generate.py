@@ -10,6 +10,8 @@ from typing import Iterable, Optional, Sequence
 
 import replicate
 
+from modules.config import resolve_channel
+
 MODEL_NAME_PLANNER = "openai/gpt-5"
 MODEL_NAME_TRANSCRIBE = (
     "vaibhavs10/incredibly-fast-whisper:3ab86df6c8f54c11309d4d1f930ac292bad43ace52d10c80d87eb258b3c9f79c"
@@ -226,15 +228,16 @@ def generate_media_plan(
     audio_paths: Sequence[Path],
     video_title: str,
     video_id: Optional[str] = None,
-    channel_name: str = "default",
+    channel_name: Optional[str] = None,
 ) -> tuple[Path, list[dict]]:
     """Generate and save a media plan mapping image prompts to timestamps."""
 
     resolved_video_id = video_id or _generate_video_id()
+    channel = resolve_channel(None, channel_name).name
     plan = _request_plan(script)
     transcript_words = _collect_transcripts(audio_paths)
     enriched_plan = _attach_timestamps(plan, transcript_words)
-    output_path = _save_plan(video_title, resolved_video_id, enriched_plan, channel_name)
+    output_path = _save_plan(video_title, resolved_video_id, enriched_plan, channel)
     return output_path, enriched_plan
 
 

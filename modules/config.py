@@ -103,6 +103,23 @@ def get_channel_config(name: str) -> ChannelConfig:
     raise ChannelConfigError(f"Channel '{name}' not defined in configuration")
 
 
+def resolve_channel(payload_channel: Any, provided_channel: str | None = None) -> ChannelConfig:
+    """Resolve and validate a channel from payload or provided input.
+
+    The channel name must be present in ``channels.json``; otherwise a
+    ``ChannelConfigError`` is raised to halt the pipeline rather than falling
+    back to an undefined default.
+    """
+
+    channel_name = _coerce_string(payload_channel) or _coerce_string(provided_channel)
+    if not channel_name:
+        raise ChannelConfigError(
+            "Channel not provided. Specify channel_name and add it to channels.json."
+        )
+
+    return get_channel_config(channel_name)
+
+
 __all__ = [
     "ChannelConfig",
     "ChannelConfigError",
@@ -111,4 +128,5 @@ __all__ = [
     "DEFAULT_VOICE_EMOTION",
     "get_channel_config",
     "load_channels",
+    "resolve_channel",
 ]
