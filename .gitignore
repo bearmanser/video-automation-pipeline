@@ -3,3 +3,4 @@
 *.pyc
 client_secret.json
 token.json
+pipeline_progress.json

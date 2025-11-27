@@ -11,6 +11,7 @@ from moviepy.audio.fx.all import audio_loop
 from moviepy.editor import (
     AudioFileClip,
     CompositeAudioClip,
+    CompositeVideoClip,
     ImageClip,
     VideoClip,
     VideoFileClip,
@@ -144,9 +145,7 @@ def _render_frame_with_avatar(
                 avatar_image = ImageOps.mirror(avatar_image)
 
             avatar_image = _scale_avatar_image(avatar_image, base_image.size)
-            position = _position_avatar_image(
-                avatar_image.size, base_image.size, side
-            )
+            position = _position_avatar_image(avatar_image.size, base_image.size, side)
 
             base_image.paste(avatar_image, position, avatar_image)
 
@@ -175,11 +174,7 @@ def _build_avatar_overlay(
         position = _position_avatar_image(avatar_image.size, base_size, side)
         avatar_array = np.array(avatar_image)
 
-    return (
-        ImageClip(avatar_array)
-        .set_duration(duration)
-        .set_position(position)
-    )
+    return ImageClip(avatar_array).set_duration(duration).set_position(position)
 
 
 def _ensure_paths(paths: Sequence[Path | str], label: str) -> List[Path]:

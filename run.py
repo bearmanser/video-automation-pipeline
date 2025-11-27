@@ -41,7 +41,7 @@ def _paths_exist(paths: List[str] | None) -> bool:
 
 
 def main() -> None:
-    video_title = "Top in-demand skills that boost earning potential"
+    video_title = "What to do with your first paycheck"
     topic = video_title
     progress = _load_progress()
     video_title = progress.get("video_title", video_title)
