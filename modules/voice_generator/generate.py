@@ -35,9 +35,9 @@ def _prepare_output_dir(video_title: str, video_id: str, channel_name: str) -> P
 
 def _extract_section(script: str, start: str, end: Optional[str]) -> str:
     pattern = (
-        rf"\[{re.escape(start)}\]\s*(.*?)(?=\n\[{re.escape(end)}\]|\Z)"
+        rf"\[{re.escape(start)}[^\]]*\]\s*(.*?)(?=\n\[{re.escape(end)}[^\]]*\]|\Z)"
         if end
-        else rf"\[{re.escape(start)}\]\s*(.*)"
+        else rf"\[{re.escape(start)}[^\]]*\]\s*(.*)"
     )
     match = re.search(pattern, script, flags=re.DOTALL | re.IGNORECASE)
     if not match:
@@ -45,19 +45,22 @@ def _extract_section(script: str, start: str, end: Optional[str]) -> str:
     return match.group(1).strip()
 
 
-def _split_scenes(scenes_block: str) -> List[str]:
-    chunks = re.split(r"\n(?=\d+\.\s)", scenes_block.strip())
-    scenes = [chunk.strip() for chunk in chunks if chunk.strip()]
+def _extract_all_scenes(script: str) -> List[str]:
+    matches = re.findall(
+        r"\[SCENE[^\]]*\]\s*(.*?)(?=\n\[SCENE|\n\[OUTRO|\Z)",
+        script,
+        flags=re.DOTALL | re.IGNORECASE,
+    )
+    scenes = [m.strip() for m in matches if m.strip()]
     if not scenes:
-        raise ValueError("No scenes found in [SCENES] section")
+        raise ValueError("No SCENE sections found")
     return scenes
 
 
 def _collect_sections(script: str) -> List[Tuple[str, str]]:
     hook = _extract_section(script, "HOOK", "INTRO")
-    intro = _extract_section(script, "INTRO", "SCENES")
-    scenes_block = _extract_section(script, "SCENES", "OUTRO")
-    scenes = _split_scenes(scenes_block)
+    intro = _extract_section(script, "INTRO", "SCENE")
+    scenes = _extract_all_scenes(script)
     outro = _extract_section(script, "OUTRO", None)
 
     ordered_sections: List[Tuple[str, str]] = [("hook", hook), ("intro", intro)]
