@@ -28,6 +28,7 @@ DEFAULT_FPS = 30
 DEFAULT_CODEC = "libx264"
 DEFAULT_AUDIO_CODEC = "aac"
 DEFAULT_TRANSITION_DURATION = 0.6
+DEFAULT_END_CARD_DURATION = 5.0
 BG_MUSIC = "assets/music/bg.mp3"
 CASUAL_AVATAR_FILENAMES = ["casual_1.png", "casual_2.png", "casual_3.png"]
 AVATAR_PRIORITY_FILENAMES = {
@@ -243,6 +244,7 @@ def compose_video(
     audio_codec: str = DEFAULT_AUDIO_CODEC,
     resolution: Tuple[int, int] | None = None,
     transition_duration: float = DEFAULT_TRANSITION_DURATION,
+    end_card_duration: float = DEFAULT_END_CARD_DURATION,
     short_video_index: int = 1,
     avatar_path: Path | str | None = None,
     avatar_enabled: bool = True,
@@ -280,6 +282,7 @@ def compose_video(
     clip_pairs: List[Tuple[VideoClip, AudioFileClip]] = []
     short_video_clip: VideoFileClip | None = None
     final_clip: VideoClip | None = None
+    tail_clip: ImageClip | None = None
     bg_music_base: AudioFileClip | None = None
     bg_music: AudioFileClip | None = None
     composite_audio: CompositeAudioClip | None = None
@@ -353,6 +356,15 @@ def compose_video(
             [clip for clip, _ in clip_pairs], method="compose"
         )
 
+        if end_card_duration > 0 and final_clip.duration:
+            tail_frame_time = max(final_clip.duration - 1 / fps, 0)
+            tail_clip = final_clip.to_ImageClip(t=tail_frame_time).set_duration(
+                end_card_duration
+            )
+            final_clip = concatenate_videoclips(
+                [final_clip, tail_clip], method="compose"
+            )
+
         bg_source = Path(bg_music_path) if bg_music_path else Path(BG_MUSIC)
         bg_music_base = AudioFileClip(str(bg_source))
         target_duration = final_clip.duration or bg_music_base.duration or 0
@@ -386,6 +398,11 @@ def compose_video(
         if final_clip is not None:
             try:
                 final_clip.close()
+            except Exception:
+                pass
+        if tail_clip is not None:
+            try:
+                tail_clip.close()
             except Exception:
                 pass
         if composite_audio is not None:
