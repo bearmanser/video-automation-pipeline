@@ -18,11 +18,11 @@ load_dotenv()
 
 
 def main() -> None:
-    video_title = "How Inflation Works"
-    topic = "Inflation basics"
+    video_title = "Top in-demand skills that boost earning potential"
+    topic = video_title
 
     script_path, video_id = generate_and_save_script(
-        video_title, topic=topic, word_length=200
+        video_title, topic=topic, word_length=1000
     )
     print(f"Script saved to {script_path}")
 

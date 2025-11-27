@@ -13,7 +13,7 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 
 SCOPES = ["https://www.googleapis.com/auth/youtube.upload"]
-PRIVACY_STATUS = "private"
+PRIVACY_STATUS = "public"
 
 
 def _load_metadata(metadata_path: Path | str) -> Tuple[Dict, Dict]:
@@ -42,7 +42,9 @@ def _normalize_tags(raw_tags) -> List[str]:
     return [str(raw_tags).strip()] if str(raw_tags).strip() else []
 
 
-def get_credentials(token_path: str = "token.json", client_secret_path: str = "client_secret.json") -> Credentials:
+def get_credentials(
+    token_path: str = "token.json", client_secret_path: str = "client_secret.json"
+) -> Credentials:
     creds: Credentials | None = None
     token_file = Path(token_path)
 
@@ -63,7 +65,9 @@ def get_credentials(token_path: str = "token.json", client_secret_path: str = "c
     return creds
 
 
-def upload_video(*, video_path: Path | str, metadata_path: Path | str, thumbnail_path: Path | str) -> Dict:
+def upload_video(
+    *, video_path: Path | str, metadata_path: Path | str, thumbnail_path: Path | str
+) -> Dict:
     video_file = Path(video_path)
     thumb_file = Path(thumbnail_path)
 
