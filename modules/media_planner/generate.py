@@ -157,22 +157,34 @@ def _collect_transcripts(audio_paths: Sequence[Path]) -> list[dict]:
     return timeline
 
 
-def _find_timestamp(identifier: str, transcript_words: Sequence[dict]) -> Optional[float]:
-    tokens = [
+def _split_tokens(value: str) -> list[str]:
+    return [
         normalized
-        for token in identifier.split()
+        for token in re.split(r"[\s\u2010-\u2015-]+", value)
         if token.strip()
         for normalized in [_normalize_word(token)]
         if normalized
     ]
+
+
+def _find_timestamp(identifier: str, transcript_words: Sequence[dict]) -> Optional[float]:
+    tokens = _split_tokens(identifier)
     if not tokens:
         return None
 
-    normalized_words = [_normalize_word(item.get("word", "")) for item in transcript_words]
+    normalized_words: list[str] = []
+    start_times: list[float] = []
+    for item in transcript_words:
+        word = str(item.get("word", ""))
+        start = float(item.get("start", 0.0))
+        for token in _split_tokens(word):
+            normalized_words.append(token)
+            start_times.append(start)
+
     for idx in range(len(normalized_words) - len(tokens) + 1):
         window = normalized_words[idx : idx + len(tokens)]
         if window == tokens:
-            return float(transcript_words[idx].get("start", 0.0))
+            return start_times[idx]
     return None
 
 
