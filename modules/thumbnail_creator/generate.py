@@ -11,9 +11,11 @@ import json
 import re
 import urllib.request
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any, Iterable, Optional
 
 import replicate
+
+from modules.config import resolve_channel
 
 MODEL_NAME = "google/imagen-4-fast"
 DEFAULT_ASPECT_RATIO = "16:9"
@@ -121,7 +123,9 @@ def _persist_thumbnail(output_obj: Any, output_path: Path) -> Path:
     return output_path
 
 
-def generate_thumbnail(media_plan_path: Path | str, *, channel_name: str = "default") -> Path:
+def generate_thumbnail(
+    media_plan_path: Path | str, *, channel_name: Optional[str] = None
+) -> Path:
     """Generate a single thumbnail image based on the video title."""
 
     path = Path(media_plan_path)
@@ -129,7 +133,7 @@ def generate_thumbnail(media_plan_path: Path | str, *, channel_name: str = "defa
 
     video_title = str(payload.get("video_title", "video")).strip()
     video_id = str(payload.get("video_id", "")).strip()
-    channel = str(payload.get("channel_name") or channel_name or "default")
+    channel = resolve_channel(payload.get("channel_name"), channel_name).name
     if not video_id:
         raise ValueError("Media plan missing 'video_id'")
 

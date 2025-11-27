@@ -5,9 +5,11 @@ from __future__ import annotations
 import json
 import urllib.request
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any, Iterable, Optional
 
 import replicate
+
+from modules.config import resolve_channel
 
 MODEL_NAME = "bytedance/seedance-1-pro-fast"
 DEFAULT_DURATION = 5
@@ -128,7 +130,7 @@ def generate_short_video(
     resolution: str = DEFAULT_RESOLUTION,
     camera_fixed: bool = DEFAULT_CAMERA_FIXED,
     style_guidance: str | None = None,
-    channel_name: str = "default",
+    channel_name: Optional[str] = None,
 ) -> Path:
     """Generate a single short video using the second media plan entry."""
 
@@ -137,7 +139,7 @@ def generate_short_video(
 
     video_title = str(payload.get("video_title", "video"))
     video_id = str(payload.get("video_id", ""))
-    channel = str(payload.get("channel_name") or channel_name or "default")
+    channel = resolve_channel(payload.get("channel_name"), channel_name).name
     if not video_id:
         raise ValueError("Media plan missing 'video_id'")
 

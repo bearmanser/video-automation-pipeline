@@ -6,10 +6,12 @@ import json
 import math
 import re
 from pathlib import Path
-from typing import Any, Iterable, List
+from typing import Any, Iterable, List, Optional
 
 import replicate
 import urllib.request
+
+from modules.config import resolve_channel
 
 MODEL_NAME = "google/imagen-4-fast"
 DEFAULT_ASPECT_RATIO = "16:9"
@@ -105,7 +107,7 @@ def generate_images(
     media_plan_path: Path | str,
     *,
     style_guidance: str | None = None,
-    channel_name: str = "default",
+    channel_name: Optional[str] = None,
 ) -> List[Path]:
     """Generate and save images for all media plan entries with valid timestamps."""
 
@@ -114,7 +116,8 @@ def generate_images(
 
     video_title = str(payload.get("video_title", "video"))
     video_id = str(payload.get("video_id", ""))
-    channel = str(payload.get("channel_name") or channel_name or "default")
+    channel_config = resolve_channel(payload.get("channel_name"), channel_name)
+    channel = channel_config.name
     if not video_id:
         raise ValueError("Media plan missing 'video_id'")
 

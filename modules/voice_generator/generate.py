@@ -9,6 +9,8 @@ from typing import Any, List, Optional, Tuple
 
 import replicate
 
+from modules.config import resolve_channel
+
 MODEL_NAME = "minimax/speech-02-turbo"
 DEFAULT_VOICE_ID = "Wise_Woman"
 DEFAULT_AUDIO_FORMAT = "mp3"
@@ -107,7 +109,7 @@ def generate_voiceover(
     language_boost: str = "English",
     subtitle_enable: bool = False,
     english_normalization: bool = True,
-    channel_name: str = "default",
+    channel_name: Optional[str] = None,
 ) -> list[Path]:
     """Generate a voiceover for each section of the provided script.
 
@@ -115,7 +117,8 @@ def generate_voiceover(
     """
 
     resolved_video_id = video_id or _generate_video_id()
-    output_dir = _prepare_output_dir(video_title, resolved_video_id, channel_name)
+    channel = resolve_channel(None, channel_name).name
+    output_dir = _prepare_output_dir(video_title, resolved_video_id, channel)
     sections = _collect_sections(script)
 
     audio_paths: list[Path] = []

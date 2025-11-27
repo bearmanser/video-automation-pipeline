@@ -23,6 +23,8 @@ from PIL import Image, ImageOps
 if not hasattr(Image, "ANTIALIAS"):
     Image.ANTIALIAS = Image.Resampling.LANCZOS  # type: ignore[attr-defined, assignment]
 
+from modules.config import resolve_channel
+
 DEFAULT_VIDEO_FILENAME = "final_video.mp4"
 DEFAULT_FPS = 30
 DEFAULT_CODEC = "libx264"
@@ -249,7 +251,7 @@ def compose_video(
     avatar_path: Path | str | None = None,
     avatar_enabled: bool = True,
     bg_music_path: Path | str | None = None,
-    channel_name: str = "default",
+    channel_name: Optional[str] = None,
 ) -> Path:
     """Compose the final video by pairing audio clips with generated images.
 
@@ -265,12 +267,13 @@ def compose_video(
 
     resolved_audio_paths = _ensure_paths(audio_paths, "audio")
     resolved_image_paths = _ensure_paths(image_paths, "image")
+    channel = resolve_channel(None, channel_name).name
     resolved_short_video = Path(short_video_path) if short_video_path else None
     if resolved_short_video and not resolved_short_video.exists():
         raise FileNotFoundError(
             f"Missing short video file: {resolved_short_video}"  # pragma: no cover
         )
-    output_dir = _prepare_output_dir(video_title, video_id, channel_name)
+    output_dir = _prepare_output_dir(video_title, video_id, channel)
     output_path = output_dir / DEFAULT_VIDEO_FILENAME
 
     base_resolution = _determine_base_resolution(

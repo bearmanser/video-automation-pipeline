@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import json
+import json
 import re
 from pathlib import Path
 from typing import Iterable, Optional
 
 import replicate
+
+from modules.config import resolve_channel
 
 MODEL_NAME = "openai/gpt-5"
 METADATA_FORMAT_VERSION = "YOUTUBE_METADATA_V1"
@@ -73,7 +76,7 @@ def generate_metadata(
     video_title: str,
     media_plan_path: Path | str,
     video_id: Optional[str] = None,
-    channel_name: str = "default",
+    channel_name: Optional[str] = None,
 ) -> Path:
     """Generate and save upload-ready metadata for YouTube."""
 
@@ -81,7 +84,7 @@ def generate_metadata(
     payload = _load_media_plan(path)
 
     resolved_video_id = video_id or str(payload.get("video_id", ""))
-    channel = str(payload.get("channel_name") or channel_name or "default")
+    channel = resolve_channel(payload.get("channel_name"), channel_name).name
     if not resolved_video_id:
         raise ValueError("Video ID is required to generate metadata")
 

@@ -140,11 +140,12 @@ def generate_and_save_script(
     video_title: str,
     video_id: Optional[str] = None,
     word_length: Optional[int] = None,
-    channel_name: str = "default",
+    channel_name: Optional[str] = None,
 ) -> tuple[Path, str]:
     resolved_video_id = video_id or _generate_video_id()
+    channel = resolve_channel(None, channel_name).name
     script = generate_script(video_title, resolved_video_id, word_length)
-    script_path = _save_script(video_title, resolved_video_id, script, channel_name)
+    script_path = _save_script(video_title, resolved_video_id, script, channel)
     return script_path, resolved_video_id
 
 
@@ -152,3 +153,5 @@ __all__ = [
     "generate_script",
     "generate_and_save_script",
 ]
+from modules.config import resolve_channel
+
