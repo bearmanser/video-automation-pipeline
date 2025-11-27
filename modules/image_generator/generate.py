@@ -48,9 +48,9 @@ def _load_media_plan(media_plan_path: Path) -> dict:
     return payload
 
 
-def _prepare_output_dir(video_title: str, video_id: str) -> Path:
+def _prepare_output_dir(video_title: str, video_id: str, channel_name: str) -> Path:
     safe_title = _slugify(video_title)
-    output_dir = Path("channel") / f"{safe_title}-{video_id}" / "images"
+    output_dir = Path("channel") / channel_name / f"{safe_title}-{video_id}" / "images"
     output_dir.mkdir(parents=True, exist_ok=True)
     return output_dir
 
@@ -61,8 +61,9 @@ def _download_image(url: str, output_path: Path) -> Path:
     return output_path
 
 
-def _run_image_model(prompt: str):
-    styled_prompt = f"{prompt}\n\n{STYLE_GUIDANCE}" if prompt else STYLE_GUIDANCE
+def _run_image_model(prompt: str, style_guidance: str | None):
+    guidance = style_guidance or STYLE_GUIDANCE
+    styled_prompt = f"{prompt}\n\n{guidance}" if prompt else guidance
     return replicate.run(
         MODEL_NAME,
         input={
@@ -100,7 +101,12 @@ def _build_filename(index: int, timestamp: float) -> str:
     return f"{index:03d}-t{timestamp_part}.{OUTPUT_FORMAT}"
 
 
-def generate_images(media_plan_path: Path | str) -> List[Path]:
+def generate_images(
+    media_plan_path: Path | str,
+    *,
+    style_guidance: str | None = None,
+    channel_name: str = "default",
+) -> List[Path]:
     """Generate and save images for all media plan entries with valid timestamps."""
 
     path = Path(media_plan_path)
@@ -108,10 +114,11 @@ def generate_images(media_plan_path: Path | str) -> List[Path]:
 
     video_title = str(payload.get("video_title", "video"))
     video_id = str(payload.get("video_id", ""))
+    channel = str(payload.get("channel_name") or channel_name or "default")
     if not video_id:
         raise ValueError("Media plan missing 'video_id'")
 
-    output_dir = _prepare_output_dir(video_title, video_id)
+    output_dir = _prepare_output_dir(video_title, video_id, channel)
     entries = payload.get("entries", [])
 
     image_paths: List[Path] = []
@@ -123,7 +130,7 @@ def generate_images(media_plan_path: Path | str) -> List[Path]:
             continue
 
         filename = _build_filename(idx, float(timestamp))
-        output_obj = _run_image_model(prompt)
+        output_obj = _run_image_model(prompt, style_guidance)
         output_path = _persist_generated_image(output_obj, output_dir / filename)
         image_paths.append(output_path)
 

@@ -1,0 +1,33 @@
+{
+  "channels": [
+    {
+      "name": "default",
+      "image_style_guidance": "unified modern financial visual style, consistent color palette of cool blues and soft neutrals, clean professional composition, subtle gradients, sharp clarity, cohesive lighting, refined minimal aesthetic, polished and trustworthy tone",
+      "short_video_style_guidance": "cinematic storytelling, smooth camera presence, steady framing, confident yet friendly tone, balanced lighting, cohesive color palette, and clean modern motion pacing",
+      "avatar_path": null,
+      "avatar_enabled": false,
+      "voice_id": "Wise_Woman",
+      "voice_emotion": "happy",
+      "bg_music": "assets/music/bg.mp3"
+    },
+    {
+      "name": "TheFriendlyFinanceGuide",
+      "image_style_guidance": "unified modern financial visual style, consistent color palette of cool blues and soft neutrals, clean professional composition, subtle gradients, sharp clarity, cohesive lighting, refined minimal aesthetic, polished and trustworthy tone",
+      "short_video_style_guidance": "cinematic storytelling, smooth camera presence, steady framing, confident yet friendly tone, balanced lighting, cohesive color palette, and clean modern motion pacing",
+      "avatar_path": null,
+      "avatar_enabled": false,
+      "voice_id": "Wise_Woman",
+      "voice_emotion": "happy",
+      "bg_music": "assets/music/bg.mp3"
+    },
+    {
+      "name": "AgeofAntiquity",
+      "image_style_guidance": "Styled as a dramatic classical painting. Strong backlighting creates luminous halos around subjects, with deep shadows and bold highlights in a chiaroscuro palette. Composition is wide, balanced, and heroic, resembling a Renaissance or Baroque tableau. Textures mimic oil paint with visible brushwork, rich warm colors, and layered depth. Atmosphere is mythic and grand, filled with drifting dust or light rays. Figures are dynamic and expressive, posed mid-action in a way that feels like a monumental fresco frozen at its most dramatic moment.",
+      "avatar_path": null,
+      "avatar_enabled": false,
+      "voice_id": "English_CaptivatingStoryteller",
+      "voice_emotion": "auto",
+      "bg_music": "assets/music/fall-of-the-roman-empire-background-epic-music-for-video-200221.mp3"
+    }
+  ]
+}

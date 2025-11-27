@@ -43,10 +43,12 @@ def _normalize_tags(raw_tags) -> List[str]:
 
 
 def get_credentials(
-    token_path: str = "token.json", client_secret_path: str = "client_secret.json"
+    token_path: Path | str = "token.json",
+    client_secret_path: Path | str = "client_secret.json",
 ) -> Credentials:
     creds: Credentials | None = None
     token_file = Path(token_path)
+    token_file.parent.mkdir(parents=True, exist_ok=True)
 
     if token_file.exists():
         with token_file.open("r", encoding="utf-8") as f:
@@ -66,7 +68,11 @@ def get_credentials(
 
 
 def upload_video(
-    *, video_path: Path | str, metadata_path: Path | str, thumbnail_path: Path | str
+    *,
+    video_path: Path | str,
+    metadata_path: Path | str,
+    thumbnail_path: Path | str,
+    token_path: Path | str = "token.json",
 ) -> Dict:
     video_file = Path(video_path)
     thumb_file = Path(thumbnail_path)
@@ -85,7 +91,7 @@ def upload_video(
         "tags": _normalize_tags(metadata.get("tags")),
     }
 
-    creds = get_credentials()
+    creds = get_credentials(token_path=token_path, client_secret_path="client_secret.json")
     youtube = build("youtube", "v3", credentials=creds)
 
     request = youtube.videos().insert(

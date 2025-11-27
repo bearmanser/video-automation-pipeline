@@ -44,9 +44,9 @@ def _load_media_plan(media_plan_path: Path) -> dict:
     return payload
 
 
-def _prepare_output_dir(video_title: str, video_id: str) -> Path:
+def _prepare_output_dir(video_title: str, video_id: str, channel_name: str) -> Path:
     safe_title = _slugify(video_title)
-    output_dir = Path("channel") / f"{safe_title}-{video_id}" / "thumbnails"
+    output_dir = Path("channel") / channel_name / f"{safe_title}-{video_id}" / "thumbnails"
     output_dir.mkdir(parents=True, exist_ok=True)
     return output_dir
 
@@ -105,7 +105,7 @@ def _persist_thumbnail(output_obj: Any, output_path: Path) -> Path:
     return output_path
 
 
-def generate_thumbnail(media_plan_path: Path | str) -> Path:
+def generate_thumbnail(media_plan_path: Path | str, *, channel_name: str = "default") -> Path:
     """Generate a single thumbnail image based on the video title."""
 
     path = Path(media_plan_path)
@@ -113,11 +113,12 @@ def generate_thumbnail(media_plan_path: Path | str) -> Path:
 
     video_title = str(payload.get("video_title", "video")).strip()
     video_id = str(payload.get("video_id", "")).strip()
+    channel = str(payload.get("channel_name") or channel_name or "default")
     if not video_id:
         raise ValueError("Media plan missing 'video_id'")
 
     prompt = _build_prompt(video_title or "YouTube video")
-    output_dir = _prepare_output_dir(video_title or "video", video_id)
+    output_dir = _prepare_output_dir(video_title or "video", video_id, channel)
     output_path = output_dir / THUMBNAIL_FILENAME
 
     response = _run_thumbnail_model(prompt)

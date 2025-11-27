@@ -10,7 +10,7 @@ from typing import Iterable, Optional
 import replicate
 
 MODEL_NAME = "openai/gpt-5"
-SCRIPT_FORMAT_VERSION = "YOUTUBE_SCRIPT_V1"
+SCRIPT_FORMAT_VERSION = "YOUTUBE_SCRIPT_V2"
 
 
 def _slugify(value: str) -> str:
@@ -27,7 +27,7 @@ def _collect_response_chunks(chunks: Iterable[str]) -> str:
 
 
 def _build_prompt(
-    video_title: str, video_id: str, topic: Optional[str], word_length: Optional[int]
+    video_title: str, video_id: str, word_length: Optional[int]
 ) -> str:
     script_format = f"""
 VIDEO_TITLE: {video_title}
@@ -35,24 +35,32 @@ VIDEO_ID: {video_id}
 FORMAT: {SCRIPT_FORMAT_VERSION}
 
 [HOOK]
-- one to two short lines that grab attention.
+A brief opening that grabs attention and introduces the central question or tension.
 
 [INTRO]
-- a concise setup that frames the topic.
+A short setup that frames the topic and leads naturally into the first scene.
 
-[SCENES]
-1. Scene title
-   3-5 conversational sentences that sound natural when spoken aloud.
-2. Scene title
-   3-5 conversational sentences that sound natural when spoken aloud.
-3. Scene title
-   3-5 conversational sentences that sound natural when spoken aloud.
+[SCENE — Title]
+Begin with a line that connects smoothly to the intro or previous section.
+Develop the idea in a natural, conversational way.
+End with a transition that points gently toward the next scene.
+
+[SCENE — Title]
+Open with a sentence that continues the flow from the prior scene’s transition.
+Explore the next part of the story or explanation.
+Close with a forward-moving line that sets up what follows.
+
+[SCENE — Title]
+Start with a link to the previous scene’s final thought.
+Unfold the next segment of the narrative or concept.
+Finish with a soft bridge that hints at the next direction.
+
+(Repeat for as many scenes as needed.)
 
 [OUTRO]
-- a brief takeaway and call to action.
+A concise reflection that ties back to the hook and wraps the topic with a sense of completion.
 """
 
-    topic_context = topic.strip() if topic else "a compelling YouTube topic"
     word_count_guidance = (
         f" Keep the overall length close to {word_length} words." if word_length else ""
     )
@@ -60,10 +68,11 @@ FORMAT: {SCRIPT_FORMAT_VERSION}
         "You are a professional YouTube script writer. "
         "Create a concise script following the exact format below. "
         "Write narration that feels natural, conversational, and paced for voiceover delivery. "
+        "Make sure every section flows into the next with gentle transitions. "
         "Avoid describing specific visuals or camera directions because another module handles them. "
         "Keep each scene focused on the spoken story only—no extra labels or visual instructions. "
         f"Aim for a compact script that can be delivered quickly.{word_count_guidance} "
-        f"The script should focus on {topic_context}.\n\n"
+        f"The script should focus on {video_title}.\n\n"
         "Return only the script using the template. Do not include commentary.\n\n"
         f"Template:\n{script_format}"
     )
@@ -83,14 +92,14 @@ def _validate_script(script: str, video_title: str, video_id: str) -> None:
     if not re.search(rf"^FORMAT:\s*{SCRIPT_FORMAT_VERSION}\s*$", script, re.MULTILINE):
         errors.append("Missing or incorrect FORMAT header.")
 
-    required_sections = ["[HOOK]", "[INTRO]", "[SCENES]", "[OUTRO]"]
+    required_sections = ["[HOOK]", "[INTRO]", "[OUTRO]"]
     for section in required_sections:
         if section not in script:
             errors.append(f"Missing required section {section}.")
 
-    scene_matches = re.findall(r"\n\d+\.\s", script)
+    scene_matches = re.findall(r"\n\[SCENE — .*?\]\s", script)
     if len(scene_matches) < 3:
-        errors.append("At least three numbered scenes are required.")
+        errors.append("At least three scenes using the [SCENE — Title] format are required.")
 
     if "<" in script or ">" in script:
         errors.append("Script contains placeholder brackets.")
@@ -99,9 +108,11 @@ def _validate_script(script: str, video_title: str, video_id: str) -> None:
         raise ValueError("Invalid script generated: " + " ".join(errors))
 
 
-def _save_script(video_title: str, video_id: str, content: str) -> Path:
+def _save_script(
+    video_title: str, video_id: str, content: str, channel_name: str
+) -> Path:
     safe_title = _slugify(video_title)
-    base_dir = Path("channel") / f"{safe_title}-{video_id}" / "scripts"
+    base_dir = Path("channel") / channel_name / f"{safe_title}-{video_id}" / "scripts"
     base_dir.mkdir(parents=True, exist_ok=True)
     file_path = base_dir / f"script-{SCRIPT_FORMAT_VERSION.lower()}.txt"
     file_path.write_text(content, encoding="utf-8")
@@ -115,11 +126,10 @@ def _generate_video_id() -> str:
 def generate_script(
     video_title: str,
     video_id: Optional[str] = None,
-    topic: Optional[str] = None,
     word_length: Optional[int] = None,
 ) -> str:
     resolved_video_id = video_id or _generate_video_id()
-    prompt = _build_prompt(video_title, resolved_video_id, topic, word_length)
+    prompt = _build_prompt(video_title, resolved_video_id, word_length)
     response = replicate.run(MODEL_NAME, input={"prompt": prompt})
     script = _collect_response_chunks(response)
     _validate_script(script, video_title, resolved_video_id)
@@ -129,12 +139,12 @@ def generate_script(
 def generate_and_save_script(
     video_title: str,
     video_id: Optional[str] = None,
-    topic: Optional[str] = None,
     word_length: Optional[int] = None,
+    channel_name: str = "default",
 ) -> tuple[Path, str]:
     resolved_video_id = video_id or _generate_video_id()
-    script = generate_script(video_title, resolved_video_id, topic, word_length)
-    script_path = _save_script(video_title, resolved_video_id, script)
+    script = generate_script(video_title, resolved_video_id, word_length)
+    script_path = _save_script(video_title, resolved_video_id, script, channel_name)
     return script_path, resolved_video_id
 
 

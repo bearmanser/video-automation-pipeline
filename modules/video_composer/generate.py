@@ -28,17 +28,12 @@ DEFAULT_FPS = 30
 DEFAULT_CODEC = "libx264"
 DEFAULT_AUDIO_CODEC = "aac"
 DEFAULT_TRANSITION_DURATION = 0.6
-AVATAR_DIR = Path("assets/avatar")
 BG_MUSIC = "assets/music/bg.mp3"
-CASUAL_AVATAR_SEQUENCE = [
-    AVATAR_DIR / "casual_1.png",
-    AVATAR_DIR / "casual_2.png",
-    AVATAR_DIR / "casual_3.png",
-]
-AVATAR_PRIORITY = {
-    "hook": [AVATAR_DIR / "pointing_1.png"],
-    "intro": [AVATAR_DIR / "casual_1.png", AVATAR_DIR / "waving_1.png"],
-    "outro": [AVATAR_DIR / "waving_1.png", AVATAR_DIR / "casual_2.png"],
+CASUAL_AVATAR_FILENAMES = ["casual_1.png", "casual_2.png", "casual_3.png"]
+AVATAR_PRIORITY_FILENAMES = {
+    "hook": ["pointing_1.png"],
+    "intro": ["casual_1.png", "waving_1.png"],
+    "outro": ["waving_1.png", "casual_2.png"],
 }
 
 
@@ -65,32 +60,31 @@ def _avatar_side_for_index(index: int) -> str:
     return "left" if index % 2 == 0 else "right"
 
 
-def _resolve_avatar_path(preferences: Sequence[Path]) -> Path:
+def _resolve_avatar_path(preferences: Sequence[Path], avatar_dir: Path) -> Path:
     for candidate in preferences:
         if candidate.exists():
             return candidate
 
-    available = sorted(AVATAR_DIR.glob("*.png"))
-    if available:
-        return available[0]
-
-    raise FileNotFoundError("No avatar images found in assets/avatar")
+    raise FileNotFoundError(f"No avatar images found in {avatar_dir}")
 
 
-def _select_avatar_asset(section_name: str, section_index: int) -> Path:
+
+
+def _select_avatar_asset(section_name: str, section_index: int, avatar_dir: Path) -> Path:
     section_key = next(
-        (key for key in AVATAR_PRIORITY if key in section_name.lower()), ""
+        (key for key in AVATAR_PRIORITY_FILENAMES if key in section_name.lower()), "",
     )
 
     if section_key:
-        preferred = AVATAR_PRIORITY[section_key]
+        preferred = [avatar_dir / name for name in AVATAR_PRIORITY_FILENAMES[section_key]]
     else:
         preferred = [
-            CASUAL_AVATAR_SEQUENCE[section_index % len(CASUAL_AVATAR_SEQUENCE)]
+            avatar_dir
+            / CASUAL_AVATAR_FILENAMES[section_index % len(CASUAL_AVATAR_FILENAMES)]
         ]
 
-    preferred += CASUAL_AVATAR_SEQUENCE
-    return _resolve_avatar_path(preferred)
+    preferred += [avatar_dir / name for name in CASUAL_AVATAR_FILENAMES]
+    return _resolve_avatar_path(preferred, avatar_dir)
 
 
 def _scale_avatar_image(
@@ -132,22 +126,26 @@ def _render_frame_with_avatar(
     base_resolution: Tuple[int, int] | None,
     section_name: str,
     section_index: int,
+    avatar_dir: Path | None,
+    avatar_enabled: bool,
 ) -> np.ndarray:
-    avatar_path = _select_avatar_asset(section_name, section_index)
     side = _avatar_side_for_index(section_index)
 
     with Image.open(image_path).convert("RGBA") as base_image:
         if base_resolution:
             base_image = base_image.resize(base_resolution, Image.ANTIALIAS)
 
-        with Image.open(avatar_path).convert("RGBA") as avatar_image:
-            if side == "left":
-                avatar_image = ImageOps.mirror(avatar_image)
+        if avatar_enabled and avatar_dir:
+            avatar_path = _select_avatar_asset(section_name, section_index, avatar_dir)
 
-            avatar_image = _scale_avatar_image(avatar_image, base_image.size)
-            position = _position_avatar_image(avatar_image.size, base_image.size, side)
+            with Image.open(avatar_path).convert("RGBA") as avatar_image:
+                if side == "left":
+                    avatar_image = ImageOps.mirror(avatar_image)
 
-            base_image.paste(avatar_image, position, avatar_image)
+                avatar_image = _scale_avatar_image(avatar_image, base_image.size)
+                position = _position_avatar_image(avatar_image.size, base_image.size, side)
+
+                base_image.paste(avatar_image, position, avatar_image)
 
         return np.array(base_image.convert("RGB"))
 
@@ -158,12 +156,16 @@ def _build_avatar_overlay(
     section_index: int,
     duration: float,
     base_size: Tuple[int, int],
+    avatar_dir: Path | None,
 ) -> Optional[ImageClip]:
     base_width, base_height = int(base_size[0] or 0), int(base_size[1] or 0)
     if not base_width or not base_height:
         return None
 
-    avatar_path = _select_avatar_asset(section_name, section_index)
+    if avatar_dir is None:
+        return None
+
+    avatar_path = _select_avatar_asset(section_name, section_index, avatar_dir)
     side = _avatar_side_for_index(section_index)
 
     with Image.open(avatar_path).convert("RGBA") as avatar_image:
@@ -187,11 +189,11 @@ def _ensure_paths(paths: Sequence[Path | str], label: str) -> List[Path]:
     return resolved
 
 
-def _prepare_output_dir(video_title: str, video_id: str) -> Path:
+def _prepare_output_dir(video_title: str, video_id: str, channel_name: str) -> Path:
     if not video_id:
         raise ValueError("video_id is required to compose the video")
     safe_title = _slugify(video_title)
-    output_dir = Path("channel") / f"{safe_title}-{video_id}"
+    output_dir = Path("channel") / channel_name / f"{safe_title}-{video_id}"
     output_dir.mkdir(parents=True, exist_ok=True)
     return output_dir
 
@@ -242,6 +244,10 @@ def compose_video(
     resolution: Tuple[int, int] | None = None,
     transition_duration: float = DEFAULT_TRANSITION_DURATION,
     short_video_index: int = 1,
+    avatar_path: Path | str | None = None,
+    avatar_enabled: bool = True,
+    bg_music_path: Path | str | None = None,
+    channel_name: str = "default",
 ) -> Path:
     """Compose the final video by pairing audio clips with generated images.
 
@@ -262,7 +268,7 @@ def compose_video(
         raise FileNotFoundError(
             f"Missing short video file: {resolved_short_video}"  # pragma: no cover
         )
-    output_dir = _prepare_output_dir(video_title, video_id)
+    output_dir = _prepare_output_dir(video_title, video_id, channel_name)
     output_path = output_dir / DEFAULT_VIDEO_FILENAME
 
     base_resolution = _determine_base_resolution(
@@ -277,6 +283,8 @@ def compose_video(
     bg_music_base: AudioFileClip | None = None
     bg_music: AudioFileClip | None = None
     composite_audio: CompositeAudioClip | None = None
+    avatar_dir = Path(avatar_path) if avatar_path else None
+    use_avatar = avatar_enabled and avatar_dir is not None
 
     try:
         if resolved_short_video is not None:
@@ -299,11 +307,16 @@ def compose_video(
                 if base_resolution:
                     visual_clip = visual_clip.resize(newsize=base_resolution)
 
-                avatar_clip = _build_avatar_overlay(
-                    section_name=section_name,
-                    section_index=index,
-                    duration=audio_clip.duration or visual_clip.duration or 0,
-                    base_size=visual_clip.size,
+                avatar_clip = (
+                    _build_avatar_overlay(
+                        section_name=section_name,
+                        section_index=index,
+                        duration=audio_clip.duration or visual_clip.duration or 0,
+                        base_size=visual_clip.size,
+                        avatar_dir=avatar_dir,
+                    )
+                    if use_avatar
+                    else None
                 )
                 if avatar_clip is not None:
                     visual_clip = CompositeVideoClip(
@@ -315,6 +328,8 @@ def compose_video(
                     base_resolution=base_resolution,
                     section_name=section_name,
                     section_index=index,
+                    avatar_dir=avatar_dir,
+                    avatar_enabled=use_avatar,
                 )
                 visual_clip = ImageClip(composited_frame).set_duration(
                     audio_clip.duration
@@ -338,7 +353,8 @@ def compose_video(
             [clip for clip, _ in clip_pairs], method="compose"
         )
 
-        bg_music_base = AudioFileClip(BG_MUSIC)
+        bg_source = Path(bg_music_path) if bg_music_path else Path(BG_MUSIC)
+        bg_music_base = AudioFileClip(str(bg_source))
         target_duration = final_clip.duration or bg_music_base.duration or 0
         bg_music = bg_music_base.fx(audio_loop, duration=target_duration).volumex(0.5)
 

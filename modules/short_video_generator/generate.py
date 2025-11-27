@@ -40,9 +40,9 @@ def _load_media_plan(media_plan_path: Path) -> dict:
     return payload
 
 
-def _prepare_output_dir(video_title: str, video_id: str) -> Path:
+def _prepare_output_dir(video_title: str, video_id: str, channel_name: str) -> Path:
     safe_title = _slugify(video_title)
-    output_dir = Path("channel") / f"{safe_title}-{video_id}" / "shorts"
+    output_dir = Path("channel") / channel_name / f"{safe_title}-{video_id}" / "shorts"
     output_dir.mkdir(parents=True, exist_ok=True)
     return output_dir
 
@@ -127,6 +127,8 @@ def generate_short_video(
     aspect_ratio: str = DEFAULT_ASPECT_RATIO,
     resolution: str = DEFAULT_RESOLUTION,
     camera_fixed: bool = DEFAULT_CAMERA_FIXED,
+    style_guidance: str | None = None,
+    channel_name: str = "default",
 ) -> Path:
     """Generate a single short video using the second media plan entry."""
 
@@ -135,11 +137,13 @@ def generate_short_video(
 
     video_title = str(payload.get("video_title", "video"))
     video_id = str(payload.get("video_id", ""))
+    channel = str(payload.get("channel_name") or channel_name or "default")
     if not video_id:
         raise ValueError("Media plan missing 'video_id'")
 
-    prompt = _select_prompt(payload.get("entries", []))
-    output_dir = _prepare_output_dir(video_title, video_id)
+    base_prompt = _select_prompt(payload.get("entries", []))
+    prompt = f"{base_prompt}\n\n{style_guidance}" if style_guidance else base_prompt
+    output_dir = _prepare_output_dir(video_title, video_id, channel)
     output_path = output_dir / OUTPUT_FILENAME
 
     response = _run_video_model(
