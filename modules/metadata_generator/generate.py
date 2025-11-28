@@ -59,6 +59,7 @@ def _build_prompt(video_title: str, entries: list[dict], format_version: str) ->
     return (
         "You are crafting metadata for a YouTube video. "
         "Return a compact JSON object with these keys: title, description and tags. "
+        "Use the exact provided video title without changing it. "
         "The title should be punchy and under 70 characters. "
         "The description should be 2-3 sentences summarizing the video and inviting engagement. "
         "Provide 8-12 concise tags as a comma-separated string. "
@@ -100,6 +101,11 @@ def generate_metadata(
         metadata = json.loads(content)
     except json.JSONDecodeError as exc:
         raise ValueError("Metadata response was not valid JSON") from exc
+
+    if not isinstance(metadata, dict):
+        raise ValueError("Metadata response must be a JSON object")
+
+    metadata["title"] = video_title
 
     output_path = _prepare_output_path(video_title, resolved_video_id, channel)
     payload = {

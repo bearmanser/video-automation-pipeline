@@ -348,10 +348,15 @@ def compose_video(
 
             visual_clip = visual_clip.set_audio(audio_clip)
 
+            uses_still_image = not use_short_video
             effective_transition = (
-                min(transition_duration, audio_clip.duration / 2)
-                if audio_clip.duration and transition_duration
-                else 0
+                0
+                if uses_still_image
+                else (
+                    min(transition_duration, audio_clip.duration / 2)
+                    if audio_clip.duration and transition_duration
+                    else 0
+                )
             )
 
             visual_clip = _apply_transitions(visual_clip, effective_transition)

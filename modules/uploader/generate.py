@@ -10,6 +10,7 @@ from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
 from googleapiclient.http import MediaFileUpload
 
 SCOPES = ["https://www.googleapis.com/auth/youtube.upload"]
@@ -107,7 +108,12 @@ def upload_video(
         thumb_request = youtube.thumbnails().set(
             videoId=uploaded_video_id, media_body=MediaFileUpload(str(thumb_file))
         )
-        thumb_request.execute()
+        try:
+            thumb_request.execute()
+        except HttpError as exc:  # pragma: no cover - requires live API
+            print(
+                f"Warning: Failed to upload thumbnail for video {uploaded_video_id}: {exc}"
+            )
 
     return {"video": response, "video_id": uploaded_video_id}
 
