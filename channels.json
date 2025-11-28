@@ -30,6 +30,16 @@
       "voice_emotion": "auto",
       "bg_music": "assets/music/summer-insects-243572.mp3",
       "still_image_path": "assets/images/image2.png"
+    },
+    {
+      "name": "TheQuietCortex",
+      "image_style_guidance": "Dark, atmospheric, introspective",
+      "short_video_style_guidance": "Dark, atmospheric, introspective",
+      "avatar_path": null,
+      "avatar_enabled": false,
+      "voice_id": "conversational_female_2_v1",
+      "voice_emotion": "auto",
+      "bg_music": "assets/music/just-relax-11157.mp3"
     }
   ]
 }
