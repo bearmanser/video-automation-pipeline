@@ -71,15 +71,18 @@ def _resolve_avatar_path(preferences: Sequence[Path], avatar_dir: Path) -> Path:
     raise FileNotFoundError(f"No avatar images found in {avatar_dir}")
 
 
-
-
-def _select_avatar_asset(section_name: str, section_index: int, avatar_dir: Path) -> Path:
+def _select_avatar_asset(
+    section_name: str, section_index: int, avatar_dir: Path
+) -> Path:
     section_key = next(
-        (key for key in AVATAR_PRIORITY_FILENAMES if key in section_name.lower()), "",
+        (key for key in AVATAR_PRIORITY_FILENAMES if key in section_name.lower()),
+        "",
     )
 
     if section_key:
-        preferred = [avatar_dir / name for name in AVATAR_PRIORITY_FILENAMES[section_key]]
+        preferred = [
+            avatar_dir / name for name in AVATAR_PRIORITY_FILENAMES[section_key]
+        ]
     else:
         preferred = [
             avatar_dir
@@ -146,7 +149,9 @@ def _render_frame_with_avatar(
                     avatar_image = ImageOps.mirror(avatar_image)
 
                 avatar_image = _scale_avatar_image(avatar_image, base_image.size)
-                position = _position_avatar_image(avatar_image.size, base_image.size, side)
+                position = _position_avatar_image(
+                    avatar_image.size, base_image.size, side
+                )
 
                 base_image.paste(avatar_image, position, avatar_image)
 
@@ -371,7 +376,7 @@ def compose_video(
         bg_source = Path(bg_music_path) if bg_music_path else Path(BG_MUSIC)
         bg_music_base = AudioFileClip(str(bg_source))
         target_duration = final_clip.duration or bg_music_base.duration or 0
-        bg_music = bg_music_base.fx(audio_loop, duration=target_duration).volumex(0.5)
+        bg_music = bg_music_base.fx(audio_loop, duration=target_duration).volumex(0.15)
 
         narration_audio = final_clip.audio
         composite_audio = (
