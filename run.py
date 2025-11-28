@@ -47,7 +47,7 @@ def _paths_exist(paths: List[str] | None) -> bool:
 
 
 def main() -> None:
-    video_title = "Your Girlfriend Tells You Why She Loves You | Audio Roleplay [F4M] [Sleep-Aid] [Rain Sounds]"
+    video_title = "Stargazing Together at a Park | F4M"
     channel_name = "BunnyEarAudios"
 
     try:

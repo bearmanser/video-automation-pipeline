@@ -4,8 +4,8 @@
       "name": "TheFriendlyFinanceGuide",
       "image_style_guidance": "unified modern financial visual style, consistent color palette of cool blues and soft neutrals, clean professional composition, subtle gradients, sharp clarity, cohesive lighting, refined minimal aesthetic, polished and trustworthy tone",
       "short_video_style_guidance": "cinematic storytelling, smooth camera presence, steady framing, confident yet friendly tone, balanced lighting, cohesive color palette, and clean modern motion pacing",
-      "avatar_path": null,
-      "avatar_enabled": false,
+      "avatar_path": "assets/avatar",
+      "avatar_enabled": true,
       "voice_id": "Wise_Woman",
       "voice_emotion": "happy",
       "bg_music": "assets/music/bg.mp3"
@@ -28,8 +28,8 @@
       "avatar_enabled": false,
       "voice_id": "English_Whispering_girl_v3",
       "voice_emotion": "auto",
-      "bg_music": "assets/music/rainy-window-sleep-sounds-12-asmr-247407.mp3",
-      "still_image_path": "assets/images/image.png"
+      "bg_music": "assets/music/summer-insects-243572.mp3",
+      "still_image_path": "assets/images/image2.png"
     }
   ]
 }
