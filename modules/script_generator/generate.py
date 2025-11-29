@@ -5,12 +5,16 @@ from __future__ import annotations
 import re
 import uuid
 from pathlib import Path
-from typing import Iterable, Optional
+from typing import Iterable, Optional, TYPE_CHECKING
 
 import replicate
 
 MODEL_NAME = "openai/gpt-5"
 SCRIPT_FORMAT_VERSION = "YOUTUBE_SCRIPT_V2"
+
+
+if TYPE_CHECKING:
+    from modules.config import ChannelConfig
 
 
 def _slugify(value: str) -> str:
@@ -27,7 +31,11 @@ def _collect_response_chunks(chunks: Iterable[str]) -> str:
 
 
 def _build_prompt(
-    video_title: str, video_id: str, word_length: Optional[int]
+    video_title: str,
+    video_id: str,
+    word_length: Optional[int],
+    channel_name: str | None = None,
+    channel_description: str | None = None,
 ) -> str:
     script_format = f"""
 VIDEO_TITLE: {video_title}
@@ -64,6 +72,18 @@ A concise reflection that ties back to the hook and wraps the topic with a sense
     word_count_guidance = (
         f" Keep the overall length close to {word_length} words." if word_length else ""
     )
+    channel_guidance = ""
+    if channel_name or channel_description:
+        guidance_lines = []
+        if channel_name:
+            guidance_lines.append(f"Channel: {channel_name}")
+        if channel_description:
+            guidance_lines.append(f"Channel description: {channel_description}")
+        channel_guidance = (
+            "\nUse the channel context below to match tone, audience, and expectations:\n"
+            + "\n".join(guidance_lines)
+            + "\n"
+        )
     return (
         "You are a professional YouTube script writer. "
         "Create a concise script following the exact format below. "
@@ -72,7 +92,7 @@ A concise reflection that ties back to the hook and wraps the topic with a sense
         "Avoid describing specific visuals or camera directions because another module handles them. "
         "Keep each scene focused on the spoken story only—no extra labels or visual instructions. "
         f"Aim for a compact script that can be delivered quickly.{word_count_guidance} "
-        f"The script should focus on {video_title}.\n\n"
+        f"The script should focus on {video_title}.{channel_guidance}\n"
         "Return only the script using the template. Do not include commentary.\n\n"
         f"Template:\n{script_format}"
     )
@@ -127,9 +147,16 @@ def generate_script(
     video_title: str,
     video_id: Optional[str] = None,
     word_length: Optional[int] = None,
+    channel: "ChannelConfig | None" = None,
 ) -> str:
     resolved_video_id = video_id or _generate_video_id()
-    prompt = _build_prompt(video_title, resolved_video_id, word_length)
+    prompt = _build_prompt(
+        video_title,
+        resolved_video_id,
+        word_length,
+        channel_name=channel.name if channel else None,
+        channel_description=channel.channel_description if channel else None,
+    )
     response = replicate.run(MODEL_NAME, input={"prompt": prompt})
     script = _collect_response_chunks(response)
     _validate_script(script, video_title, resolved_video_id)
@@ -143,9 +170,13 @@ def generate_and_save_script(
     channel_name: Optional[str] = None,
 ) -> tuple[Path, str]:
     resolved_video_id = video_id or _generate_video_id()
-    channel = resolve_channel(None, channel_name).name
-    script = generate_script(video_title, resolved_video_id, word_length)
-    script_path = _save_script(video_title, resolved_video_id, script, channel)
+    channel_config = resolve_channel(None, channel_name)
+    script = generate_script(
+        video_title, resolved_video_id, word_length, channel=channel_config
+    )
+    script_path = _save_script(
+        video_title, resolved_video_id, script, channel_config.name
+    )
     return script_path, resolved_video_id
 
 

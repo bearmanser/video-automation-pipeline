@@ -29,6 +29,7 @@ class ChannelConfig:
     """Resolved configuration values for a channel."""
 
     name: str
+    channel_description: str | None = None
     image_style_guidance: str = DEFAULT_IMAGE_STYLE_GUIDANCE
     short_video_style_guidance: str = DEFAULT_SHORT_VIDEO_STYLE_GUIDANCE
     avatar_path: str | None = None
@@ -72,6 +73,7 @@ def _build_channel(entry: dict) -> ChannelConfig:
 
     return ChannelConfig(
         name=name,
+        channel_description=_coerce_string(entry.get("channel_description")),
         image_style_guidance=_coerce_string(entry.get("image_style_guidance"))
         or DEFAULT_IMAGE_STYLE_GUIDANCE,
         short_video_style_guidance=_coerce_string(entry.get("short_video_style_guidance"))

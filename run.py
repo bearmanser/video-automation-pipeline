@@ -47,8 +47,10 @@ def _paths_exist(paths: List[str] | None) -> bool:
 
 
 def main() -> None:
-    video_title = "Stargazing Together at a Park | F4M"
-    channel_name = "BunnyEarAudios"
+    video_title = (
+        "What if humanity found undeniable proof we are living in a simulation"
+    )
+    channel_name = "DreamlineDivergence"
 
     try:
         channel_config = get_channel_config(channel_name)

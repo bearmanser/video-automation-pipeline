@@ -2,16 +2,18 @@
   "channels": [
     {
       "name": "TheFriendlyFinanceGuide",
+      "channel_description": "Practical personal finance channel focused on approachable education, responsible money habits, and confidence-building guidance for everyday viewers.",
       "image_style_guidance": "unified modern financial visual style, consistent color palette of cool blues and soft neutrals, clean professional composition, subtle gradients, sharp clarity, cohesive lighting, refined minimal aesthetic, polished and trustworthy tone",
       "short_video_style_guidance": "cinematic storytelling, smooth camera presence, steady framing, confident yet friendly tone, balanced lighting, cohesive color palette, and clean modern motion pacing",
       "avatar_path": "assets/avatar",
       "avatar_enabled": true,
       "voice_id": "Wise_Woman",
       "voice_emotion": "happy",
-      "bg_music": "assets/music/bg.mp3"
+      "bg_music": "assets/music/just-relax-11157.mp3"
     },
     {
       "name": "AgeofAntiquity",
+      "channel_description": "Epic history storytelling that explores ancient civilizations with dramatic, authoritative narration and richly detailed context.",
       "image_style_guidance": "Styled as a dramatic classical painting. Strong backlighting creates luminous halos around subjects, with deep shadows and bold highlights in a chiaroscuro palette. Composition is wide, balanced, and heroic, resembling a Renaissance or Baroque tableau. Textures mimic oil paint with visible brushwork, rich warm colors, and layered depth. Atmosphere is mythic and grand, filled with drifting dust or light rays. Figures are dynamic and expressive, posed mid-action in a way that feels like a monumental fresco frozen at its most dramatic moment.",
       "short_video_style_guidance": "Rendered as a living classical painting. Subjects move in slow, fluid motion as if painted figures have come to life. Dramatic backlighting creates glowing halos while shadows and highlights maintain strong chiaroscuro contrast. Cloth, hair, smoke, and dust drift naturally, adding continuous motion. Painterly textures remain visible throughout the movement, giving each frame an illustrated quality. The camera glides through wide, balanced compositions with heroic depth and rich, warm colors. The atmosphere feels mythic, dreamlike, and grand, blending realism with the stylized look of a classical fresco brought into motion.",
       "avatar_path": null,
@@ -22,6 +24,7 @@
     },
     {
       "name": "BunnyEarAudios",
+      "channel_description": "Soft-spoken audio experiences with cozy, relaxing narration and gentle pacing designed for calm listening.",
       "image_style_guidance": "Styled as a dramatic classical painting. Strong backlighting creates luminous halos around subjects, with deep shadows and bold highlights in a chiaroscuro palette. Composition is wide, balanced, and heroic, resembling a Renaissance or Baroque tableau. Textures mimic oil paint with visible brushwork, rich warm colors, and layered depth. Atmosphere is mythic and grand, filled with drifting dust or light rays. Figures are dynamic and expressive, posed mid-action in a way that feels like a monumental fresco frozen at its most dramatic moment.",
       "short_video_style_guidance": "cinematic storytelling, smooth camera presence, steady framing, confident yet friendly tone, balanced lighting, cohesive color palette, and clean modern motion pacing",
       "avatar_path": null,
@@ -33,6 +36,7 @@
     },
     {
       "name": "TheQuietCortex",
+      "channel_description": "Reflective explorations of mindfulness and introspection, using calm, atmospheric narration to guide thoughtful viewers.",
       "image_style_guidance": "Dark, atmospheric, introspective",
       "short_video_style_guidance": "Dark, atmospheric, introspective",
       "avatar_path": null,
@@ -40,6 +44,28 @@
       "voice_id": "conversational_female_2_v1",
       "voice_emotion": "auto",
       "bg_music": "assets/music/just-relax-11157.mp3"
+    },
+    {
+      "name": "SinisterCognition",
+      "channel_description": "Chilling deep dives into dark psychology, real criminal minds, disturbing cases, and the hidden motives behind humanity's most unsettling behaviors.",
+      "image_style_guidance": "dark noir palette, moody atmospheric lighting, deep shadows with narrow beams of cold light, gritty textures, subtle film grain, crime-scene inspired compositions, psychological tension expressed through fragmented silhouettes, muted reds and desaturated tones, ominous and cinematic mood",
+      "short_video_style_guidance": "slow dramatic camera motions, tense pacing, low-key lighting, subtle zooms onto symbolic objects, quiet atmospheric build-up, documentary-style narration with psychological emphasis",
+      "avatar_path": null,
+      "avatar_enabled": false,
+      "voice_id": "English_Strong-WilledBoy",
+      "voice_emotion": "auto",
+      "bg_music": "assets/music/horror-background-music-438669.mp3"
+    },
+    {
+      "name": "DreamlineDivergence",
+      "channel_description": "Mind-bending what-if scenarios and thought experiments that explore alternate realities, extreme possibilities, and the hidden limits of human experience.",
+      "image_style_guidance": "surreal conceptual art, dreamlike abstract landscapes, soft atmospheric haze, muted cool tones with occasional neon accents, fluid shapes bending around the subject, wide compositions suggesting alternate realities, subtle double-exposure effects, introspective and imaginative mood",
+      "short_video_style_guidance": "smooth conceptual motion, gentle camera drift through surreal environments, calm but curious narration energy, soft cinematic lighting, clean transitions, dreamlike pacing, visually representing alternate realities and paradoxes",
+      "avatar_path": null,
+      "avatar_enabled": false,
+      "voice_id": "English_Insightful_Speaker",
+      "voice_emotion": "auto",
+      "bg_music": "assets/music/relaxing-music-vol1-124477.mp3"
     }
   ]
 }
