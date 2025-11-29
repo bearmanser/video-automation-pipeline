@@ -9,7 +9,7 @@
       "avatar_enabled": true,
       "voice_id": "Wise_Woman",
       "voice_emotion": "happy",
-      "bg_music": "assets/music/bg.mp3"
+      "bg_music": "assets/music/just-relax-11157.mp3"
     },
     {
       "name": "AgeofAntiquity",
@@ -44,6 +44,28 @@
       "voice_id": "conversational_female_2_v1",
       "voice_emotion": "auto",
       "bg_music": "assets/music/just-relax-11157.mp3"
+    },
+    {
+      "name": "SinisterCognition",
+      "channel_description": "Chilling deep dives into dark psychology, real criminal minds, disturbing cases, and the hidden motives behind humanity's most unsettling behaviors.",
+      "image_style_guidance": "dark noir palette, moody atmospheric lighting, deep shadows with narrow beams of cold light, gritty textures, subtle film grain, crime-scene inspired compositions, psychological tension expressed through fragmented silhouettes, muted reds and desaturated tones, ominous and cinematic mood",
+      "short_video_style_guidance": "slow dramatic camera motions, tense pacing, low-key lighting, subtle zooms onto symbolic objects, quiet atmospheric build-up, documentary-style narration with psychological emphasis",
+      "avatar_path": null,
+      "avatar_enabled": false,
+      "voice_id": "English_Strong-WilledBoy",
+      "voice_emotion": "auto",
+      "bg_music": "assets/music/horror-background-music-438669.mp3"
+    },
+    {
+      "name": "DreamlineDivergence",
+      "channel_description": "Mind-bending what-if scenarios and thought experiments that explore alternate realities, extreme possibilities, and the hidden limits of human experience.",
+      "image_style_guidance": "surreal conceptual art, dreamlike abstract landscapes, soft atmospheric haze, muted cool tones with occasional neon accents, fluid shapes bending around the subject, wide compositions suggesting alternate realities, subtle double-exposure effects, introspective and imaginative mood",
+      "short_video_style_guidance": "smooth conceptual motion, gentle camera drift through surreal environments, calm but curious narration energy, soft cinematic lighting, clean transitions, dreamlike pacing, visually representing alternate realities and paradoxes",
+      "avatar_path": null,
+      "avatar_enabled": false,
+      "voice_id": "English_Insightful_Speaker",
+      "voice_emotion": "auto",
+      "bg_music": "assets/music/relaxing-music-vol1-124477.mp3"
     }
   ]
 }
