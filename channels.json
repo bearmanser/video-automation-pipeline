@@ -9,7 +9,7 @@
       "avatar_enabled": true,
       "voice_id": "Wise_Woman",
       "voice_emotion": "happy",
-      "bg_music": "assets/music/just-relax-11157.mp3"
+      "bg_music": "assets/music/soft-corporate-background-music-441931.mp3"
     },
     {
       "name": "AgeofAntiquity",
@@ -43,7 +43,7 @@
       "avatar_enabled": false,
       "voice_id": "conversational_female_2_v1",
       "voice_emotion": "auto",
-      "bg_music": "assets/music/just-relax-11157.mp3"
+      "bg_music": "assets/music/relaxing-music-vol1-124477.mp3"
     },
     {
       "name": "SinisterCognition",
